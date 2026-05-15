@@ -1413,6 +1413,7 @@ export const apiService = {
         insurance_status: item.insurance_status === 'yes' ? 'Yes' : 'No',
         policy_num: item.policy_num,
         insurance_date: item.insurance_date,
+        policy_duration: item.policy_duration,
         insurancecompany: item.insurancecompany,
         insurance_source: item.insurance_source === 'provided by company' ? 'Agent' : 'Self',
         profileImage: (() => {
@@ -1455,6 +1456,7 @@ export const apiService = {
     formData.append('insurance_status', data.insurance_status === 'Yes' ? 'yes' : 'no');
     formData.append('policy_num', data.policy_num || '');
     formData.append('insurance_date', data.insurance_date || '');
+    formData.append('policy_duration', data.policy_duration || '');
     formData.append('insurancecompany', data.insurancecompany || '');
     formData.append('insurance_source', data.insurance_source === 'Agent' ? 'provided by company' : 'Self');
 
@@ -1501,6 +1503,7 @@ export const apiService = {
     if (data.insurance_status !== undefined) formData.append('insurance_status', data.insurance_status === 'Yes' ? 'yes' : 'no');
     if (data.policy_num !== undefined) formData.append('policy_num', data.policy_num);
     if (data.insurance_date !== undefined) formData.append('insurance_date', data.insurance_date);
+    if (data.policy_duration !== undefined) formData.append('policy_duration', data.policy_duration);
     if (data.insurancecompany !== undefined) formData.append('insurancecompany', data.insurancecompany);
     if (data.insurance_source !== undefined) formData.append('insurance_source', data.insurance_source === 'Agent' ? 'provided by company' : 'Self');
 

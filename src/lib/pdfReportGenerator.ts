@@ -285,6 +285,7 @@ export const generateWorkerProfilePDF = (worker: any, photoBase64?: string) => {
   drawField("Insurance Status", worker.insurance_status === "Yes" ? "ENROLLED" : "NOT ENROLLED", margin, currentY);
   if (worker.insurance_status === "Yes") {
     drawField("Policy Num", worker.policy_num, margin + 60, currentY);
+    drawField("Policy Duration", worker.policy_duration, margin + 110, currentY);
   }
   currentY += 25;
 

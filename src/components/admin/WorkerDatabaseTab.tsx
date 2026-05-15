@@ -544,9 +544,13 @@ const WorkerDatabaseTab: React.FC = () => {
                               <span className="text-xs font-bold text-slate-400 uppercase">Medical Insured</span>
                               <span className="text-sm font-black text-rose-600">₹{showProfile.medical_insured_amount || '0'}</span>
                             </div>
-                            <div className="grid grid-cols-2">
-                              <span className="text-xs font-bold text-slate-400 uppercase">Policy Info</span>
+                            <div className="grid grid-cols-2 border-b border-indigo-50 dark:border-slate-800 pb-4">
+                              <span className="text-xs font-bold text-slate-400 uppercase">Policy Number</span>
                               <span className="text-sm font-black text-indigo-900 dark:text-indigo-200 uppercase">{showProfile.policy_num || '—'}</span>
+                            </div>
+                            <div className="grid grid-cols-2">
+                              <span className="text-xs font-bold text-slate-400 uppercase">Policy Duration</span>
+                              <span className="text-sm font-black text-indigo-900 dark:text-indigo-200 uppercase">{showProfile.policy_duration || '—'}</span>
                             </div>
                           </>
                         )}
@@ -649,6 +653,7 @@ const WorkerDatabaseTab: React.FC = () => {
                             <div className="print-cell"><p className="print-label">Life Insured</p><p className="print-value">₹{showProfile.life_insured_amount || '0'}</p></div>
                             <div className="print-cell"><p className="print-label">Medical Insured</p><p className="print-value">₹{showProfile.medical_insured_amount || '0'}</p></div>
                             <div className="print-cell"><p className="print-label">Policy Number</p><p className="print-value uppercase">{showProfile.policy_num || '—'}</p></div>
+                            <div className="print-cell"><p className="print-label">Policy Duration</p><p className="print-value uppercase">{showProfile.policy_duration || '—'}</p></div>
                           </>
                         )}
                       </div>
@@ -904,6 +909,10 @@ const WorkerDatabaseTab: React.FC = () => {
                             <div>
                               <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Policy Date</label>
                               <input type="date" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none" value={formData.insurance_date || ''} onChange={e => setFormData({ ...formData, insurance_date: e.target.value })} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Policy Duration</label>
+                              <input type="text" className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:text-white outline-none" value={formData.policy_duration || ''} onChange={e => setFormData({ ...formData, policy_duration: e.target.value })} placeholder="e.g. 1 Year, 6 Months" />
                             </div>
                             <div>
                               <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Insurance Company</label>

@@ -3,14 +3,14 @@ import { Play, Square, Video, Link, Radio, Users, Settings, Bell, ExternalLink }
 
 const LiveClassTab: React.FC = () => {
   const [isLiveActive, setIsLiveActive] = useState<boolean>(localStorage.getItem('isLiveActive') === 'true');
-  const [meetingLink, setMeetingLink] = useState<string>(localStorage.getItem('liveMeetingLink') || 'https://copious-frill-parrot.ngrok-free.dev/room.html?room=12345');
+  const [meetingLink, setMeetingLink] = useState<string>(localStorage.getItem('liveMeetingLink') || 'https://api.codingboss.in/live/');
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   useEffect(() => {
     // Listen for changes in localStorage from other tabs
     const handleStorageChange = () => {
       setIsLiveActive(localStorage.getItem('isLiveActive') === 'true');
-      setMeetingLink(localStorage.getItem('liveMeetingLink') || 'https://copious-frill-parrot.ngrok-free.dev/room.html?room=12345');
+      setMeetingLink(localStorage.getItem('liveMeetingLink') || 'https://api.codingboss.in/live/');
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -26,7 +26,7 @@ const LiveClassTab: React.FC = () => {
     localStorage.setItem('liveMeetingLink', meetingLink);
     setIsLiveActive(true);
     setStatusMessage("Class started successfully!");
-    
+
     // Open the meeting link directly for the admin
     window.open(meetingLink, '_blank');
 
@@ -39,7 +39,7 @@ const LiveClassTab: React.FC = () => {
     localStorage.removeItem('liveMeetingLink');
     setIsLiveActive(false);
     setStatusMessage("Class ended.");
-    
+
     // Trigger a storage event manually for the same tab
     window.dispatchEvent(new Event('storage'));
   };
@@ -57,11 +57,10 @@ const LiveClassTab: React.FC = () => {
             Broadcast your knowledge to thousands of students worldwide.
           </p>
         </div>
-        <div className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border-2 transition-all duration-500 ${
-          isLiveActive 
-          ? "bg-rose-50 text-rose-600 border-rose-100 animate-bounce" 
-          : "bg-slate-50 text-slate-400 border-slate-100"
-        }`}>
+        <div className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest border-2 transition-all duration-500 ${isLiveActive
+            ? "bg-rose-50 text-rose-600 border-rose-100 animate-bounce"
+            : "bg-slate-50 text-slate-400 border-slate-100"
+          }`}>
           {isLiveActive ? "● System Live" : "○ System Offline"}
         </div>
       </div>
@@ -71,15 +70,13 @@ const LiveClassTab: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
             {/* Background Decorative Element */}
-            <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl transition-all duration-700 ${
-              isLiveActive ? "bg-rose-500/10" : "bg-indigo-500/5"
-            }`} />
+            <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl transition-all duration-700 ${isLiveActive ? "bg-rose-500/10" : "bg-indigo-500/5"
+              }`} />
 
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-8">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 ${
-                  isLiveActive ? "bg-rose-50" : "bg-indigo-50"
-                }`}>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-500 ${isLiveActive ? "bg-rose-50" : "bg-indigo-50"
+                  }`}>
                   <Video className={`w-7 h-7 ${isLiveActive ? "text-rose-600" : "text-indigo-600"}`} />
                 </div>
                 <div>
@@ -133,16 +130,15 @@ const LiveClassTab: React.FC = () => {
                       </button>
                     </>
                   )}
-                  
+
                   <button className="w-full sm:w-20 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center transition-all border border-slate-100 shadow-sm py-4 sm:py-0">
                     <Settings className="w-6 h-6" />
                   </button>
                 </div>
 
                 {statusMessage && (
-                  <p className={`text-sm font-bold text-center animate-in fade-in slide-in-from-top-2 ${
-                    statusMessage.includes("success") ? "text-emerald-500" : "text-rose-500"
-                  }`}>
+                  <p className={`text-sm font-bold text-center animate-in fade-in slide-in-from-top-2 ${statusMessage.includes("success") ? "text-emerald-500" : "text-rose-500"
+                    }`}>
                     {statusMessage}
                   </p>
                 )}
@@ -179,7 +175,7 @@ const LiveClassTab: React.FC = () => {
             <div className="absolute top-0 right-0 p-6 opacity-20">
               <Radio className="w-24 h-24" />
             </div>
-            
+
             <h4 className="text-lg font-black mb-4 relative z-10">Broadcast Rules</h4>
             <ul className="space-y-4 relative z-10">
               {[

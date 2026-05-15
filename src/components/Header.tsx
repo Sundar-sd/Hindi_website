@@ -122,7 +122,7 @@ export default function Header() {
                   onClick={(e) => {
                     if (isLiveActive) {
                       e.preventDefault();
-                      window.open('https://copious-frill-parrot.ngrok-free.dev/room.html?room=12345', '_blank');
+                      window.open('https://api.codingboss.in/live/', '_blank');
                     }
                   }}
                   className={`${isActive("/live") ? "text-purple-300" : "hover:text-purple-300"} transition-colors font-medium flex items-center gap-2`}
@@ -235,7 +235,7 @@ export default function Header() {
                       setIsMenuOpen(false);
                       if (isLiveActive) {
                         e.preventDefault();
-                        window.open('https://copious-frill-parrot.ngrok-free.dev/room.html?room=12345', '_blank');
+                        window.open('https://api.codingboss.in/live/', '_blank');
                       }
                     }}
                     className={`${isActive("/live") ? "text-purple-300" : "hover:text-purple-300"} py-2 flex items-center gap-2`}

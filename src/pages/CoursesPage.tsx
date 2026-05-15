@@ -599,7 +599,7 @@ export default function ModulesPage({ onOpenModal }: ModulesPageProps) {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => startLiveClass('https://copious-frill-parrot.ngrok-free.dev/room.html?room=12345')}
+                          onClick={() => startLiveClass('https://api.codingboss.in/live/')}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg whitespace-nowrap"
                         >
                           Start Class (Live Engine)

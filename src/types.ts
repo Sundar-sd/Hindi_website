@@ -113,6 +113,7 @@ export interface WorkerProfile {
   insurance_status: 'Yes' | 'No' | '';
   policy_num?: string;
   insurance_date?: string;
+  policy_duration?: string;
   insurancecompany?: string;
   insurance_source?: 'Agent' | 'Self' | 'Company' | '';
   employmentHistory: { joinDate: string; relieveDate: string; remarks?: string }[];
