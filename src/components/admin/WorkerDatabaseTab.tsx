@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Users, Search, Edit, FileDown, Share2, X, Loader2 } from 'lucide-react';
 import { generateWorkerProfilePDF } from '../../lib/pdfReportGenerator';
-import { useEngineerData } from '../../hooks/useEngineerData';
-import { WorkerProfile } from '../../types';
+import { WorkerProfile, WorkerCategory, Site } from '../../types';
+import { apiService } from '../../lib/api';
 
 const IMAGE_API_BASE = "/api-proxy";
 
@@ -15,7 +15,7 @@ const NgrokImage: React.FC<{ src: string; alt: string; className?: string }> = (
 
   const loadImage = useCallback(async (url: string) => {
     try {
-      if (url.startsWith('blob:')) {
+      if (url.startsWith('blob:') || url.startsWith('data:')) {
         setBlobUrl(url);
         return;
       }
@@ -42,16 +42,71 @@ const NgrokImage: React.FC<{ src: string; alt: string; className?: string }> = (
 };
 
 const WorkerDatabaseTab: React.FC = () => {
-  const {
-    workerDatabase: workers,
-    loading,
-    addWorkerDatabaseEntry,
-    updateWorkerDatabaseEntry,
-    deleteWorkerDatabaseEntry,
-    toggleWorkerStatus,
-    searchWorkerDatabase,
-    workerCategories
-  } = useEngineerData();
+  const [workers, setWorkers] = useState<WorkerProfile[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [workerCategories] = useState<WorkerCategory[]>([
+    { id: '1', name: 'Mason' },
+    { id: '2', name: 'Helper' },
+    { id: '3', name: 'Carpenter' },
+    { id: '4', name: 'Plumber' },
+    { id: '5', name: 'Electrician' }
+  ]);
+
+  const loadSitesAndWorkers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const sitesList = await apiService.getSites().catch(() => []);
+      setSites(sitesList);
+
+      const backendList = await apiService.getWorkers().catch(() => []);
+      
+      const savedProfilesRaw = localStorage.getItem('worker_db');
+      const savedProfiles: WorkerProfile[] = savedProfilesRaw ? JSON.parse(savedProfilesRaw) : [];
+      
+      const mergedWorkers = backendList.map(bw => {
+        const foundProfile = savedProfiles.find(p => String(p.id) === String(bw.id) || String(p.workerid) === String(bw.id));
+        
+        return {
+          aadhar: "",
+          pan_num: "",
+          village: "",
+          district: "",
+          state: "",
+          mobile: "",
+          date_of_joining: new Date().toISOString().split('T')[0],
+          active: bw.isActive !== false,
+          status: (bw.isActive !== false) ? 'Active' : 'Inactive',
+          bloodgroup: "",
+          marital_sts: 'Unmarried',
+          referred_by: "",
+          insurance_status: 'No',
+          employmentHistory: [],
+          profileImage: null,
+          
+          ...foundProfile,
+          
+          id: bw.id,
+          workerid: foundProfile?.workerid || `ID-${bw.id}`,
+          fullname: bw.name,
+          category: bw.category || foundProfile?.category || "Helper",
+          siteId: bw.siteId,
+          selectedWage: bw.selectedWage || 500,
+        } as WorkerProfile;
+      });
+      
+      setWorkers(mergedWorkers);
+    } catch (e) {
+      console.error("Error loading Worker database details:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSitesAndWorkers();
+  }, [loadSitesAndWorkers]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -61,43 +116,132 @@ const WorkerDatabaseTab: React.FC = () => {
 
   const handleSaveWorker = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fullname || !formData.date_of_joining || !formData.mobile) return;
+    if (!formData.fullname || !formData.date_of_joining || !formData.mobile) {
+      alert("Please fill in all required fields (Full Name, Category, Mobile, and Date of Joining)");
+      return;
+    }
 
     try {
-      if (formData.id && !formData.id.startsWith('W-')) {
-        const updatedWorker = await updateWorkerDatabaseEntry(formData.id, formData, imageFile);
-        if (updatedWorker) setShowProfile(updatedWorker);
-      } else {
-        const newWorker = await addWorkerDatabaseEntry(formData, imageFile);
-        if (newWorker) setShowProfile(newWorker);
+      setLoading(true);
+      
+      let base64Image = formData.profileImage || null;
+      if (imageFile) {
+        base64Image = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(imageFile);
+        });
       }
+
+      const defaultSiteId = formData.siteId || (sites[0]?.id || "1");
+      const defaultSelectedWage = formData.selectedWage || 500;
+
+      const backendPayload = {
+        siteId: defaultSiteId,
+        name: formData.fullname,
+        category: formData.category?.toLowerCase() || "helper",
+        selectedWage: defaultSelectedWage,
+      };
+
+      let savedBackendWorker;
+      if (formData.id) {
+        savedBackendWorker = await apiService.updateWorker(formData.id, backendPayload);
+      } else {
+        savedBackendWorker = await apiService.createWorker(backendPayload);
+      }
+
+      const workerProfile: WorkerProfile = {
+        ...formData,
+        id: savedBackendWorker.id,
+        workerid: formData.workerid || `ID-${savedBackendWorker.id}`,
+        status: (formData.active !== false) ? 'Active' : 'Inactive',
+        active: formData.active !== false,
+        profileImage: base64Image as string
+      } as WorkerProfile;
+
+      setWorkers(prev => {
+        let updatedList;
+        const exists = prev.some(w => w.id === savedBackendWorker.id);
+        if (exists) {
+          updatedList = prev.map(w => w.id === savedBackendWorker.id ? workerProfile : w);
+        } else {
+          updatedList = [...prev, workerProfile];
+        }
+        localStorage.setItem('worker_db', JSON.stringify(updatedList));
+        return updatedList;
+      });
+
+      setShowProfile(workerProfile);
       setShowForm(false);
       setImageFile(null);
+      alert("Worker profile saved successfully to backend database!");
     } catch (e) {
       console.error(e);
-      alert("Failed to save worker profile");
+      alert("Failed to save worker profile to backend database");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to permanently delete this worker profile?")) {
       try {
-        await deleteWorkerDatabaseEntry(id);
+        setLoading(true);
+        await apiService.deleteWorker(id);
+        
+        setWorkers(prev => {
+          const updatedList = prev.filter(w => w.id !== id);
+          localStorage.setItem('worker_db', JSON.stringify(updatedList));
+          return updatedList;
+        });
+
         if (showProfile?.id === id) setShowProfile(null);
+        alert("Worker profile deleted from database.");
       } catch (e) {
         console.error(e);
-        alert("Failed to delete worker");
+        alert("Failed to delete worker profile");
+      } finally {
+        setLoading(false);
       }
     }
   };
 
   const handleToggleStatus = async (worker: WorkerProfile) => {
+    const newStatus = !worker.active;
+    const updated: WorkerProfile = {
+      ...worker,
+      active: newStatus,
+      status: newStatus ? 'Active' : 'Inactive',
+      date_of_relieving: newStatus ? undefined : new Date().toISOString().split('T')[0]
+    };
+    
     try {
-      await toggleWorkerStatus(worker);
-    } catch (err: any) {
-      console.error(err.response?.data || err.message || err);
-      alert("Failed to update status. Check console for details.");
+      setLoading(true);
+      await apiService.updateWorker(worker.id, {
+        siteId: worker.siteId,
+        name: worker.fullname,
+        category: worker.category,
+        selectedWage: worker.selectedWage,
+        isActive: newStatus
+      });
+
+      setWorkers(prev => {
+        const updatedList = prev.map(w => w.id === worker.id ? updated : w);
+        localStorage.setItem('worker_db', JSON.stringify(updatedList));
+        return updatedList;
+      });
+
+      if (showProfile?.id === worker.id) setShowProfile(updated);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update status");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const searchWorkerDatabase = (_term: string) => {
+    // Local search is handled via UI filtering
   };
 
   // Helper to get human-readable category name
@@ -107,15 +251,20 @@ const WorkerDatabaseTab: React.FC = () => {
     return cat ? cat.name : idOrName;
   };
 
-  // Keep showProfile in sync with core workerDatabase state from hook
-  // This ensures that when we toggle status, the profile view and relieving date update automatically
+  // Keep filtered workers list
+  const filteredWorkers = workers.filter(w => 
+    w.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    w.workerid.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    w.mobile.includes(searchTerm)
+  );
+
+  // Sync profile view
   useEffect(() => {
     if (showProfile) {
-      // 'workers' here is an alias for 'workerDatabase' from the useEngineerData hook
-      const updated = workers?.find(w => String(w.id) === String(showProfile.id));
+      const updated = workers.find(w => w.id === showProfile.id);
       if (updated) setShowProfile(updated);
     }
-  }, [workers, showProfile?.id]);
+  }, [workers]);
 
   const openForm = (worker?: WorkerProfile) => {
     setImageFile(null);
@@ -127,7 +276,8 @@ const WorkerDatabaseTab: React.FC = () => {
         date_of_joining: new Date().toISOString().split('T')[0],
         employmentHistory: [],
         insurance_status: 'No',
-        marital_sts: 'Unmarried'
+        marital_sts: 'Unmarried',
+        selectedWage: 500
       });
     }
     setShowForm(true);
@@ -150,6 +300,7 @@ const WorkerDatabaseTab: React.FC = () => {
 
   const getImageBase64 = async (url: string): Promise<string | undefined> => {
     try {
+      if (url.startsWith('data:')) return url;
       const fullUrl = url.startsWith('http') ? url : `/api-proxy${url.startsWith('/') ? '' : '/'}${url}`;
       const res = await fetch(fullUrl, { headers: { 'ngrok-skip-browser-warning': 'true' } });
       const blob = await res.blob();
@@ -233,7 +384,7 @@ const WorkerDatabaseTab: React.FC = () => {
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
               <p className="text-slate-500 font-medium">Loading database...</p>
             </div>
-          ) : workers.length === 0 ? (
+          ) : filteredWorkers.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 p-12 text-center rounded-2xl border border-slate-100 dark:border-slate-800">
               <Users className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-4 shadow-sm opacity-50" />
               <h3 className="text-lg font-bold text-slate-500 dark:text-slate-400">
@@ -242,7 +393,7 @@ const WorkerDatabaseTab: React.FC = () => {
               {searchTerm && <button onClick={() => setSearchTerm('')} className="mt-4 text-xs font-bold text-indigo-500 uppercase tracking-widest hover:underline">Clear Search</button>}
             </div>
           ) : (
-            workers.map(w => (
+            filteredWorkers.map(w => (
               <div
                 key={w.id}
                 onClick={() => setShowProfile(w)}
@@ -753,6 +904,7 @@ const WorkerDatabaseTab: React.FC = () => {
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Mobile Number *</label>
                       <input required type="text" className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 dark:text-white transition-all outline-none shadow-sm" value={formData.mobile || ''} onChange={e => setFormData({ ...formData, mobile: e.target.value })} placeholder="10 Digits" />
                     </div>
+
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Aadhaar Number</label>
                       <input type="text" className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 dark:text-white transition-all outline-none shadow-sm" value={formData.aadhar || ''} onChange={e => setFormData({ ...formData, aadhar: e.target.value })} placeholder="12 Digits" />

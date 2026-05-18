@@ -11,9 +11,12 @@ import {
   ChevronDown,
   Tag,
   Wallet,
-  Receipt
+  Receipt,
+  Loader2
 } from "lucide-react";
 import { generateProfessionalPDF, shareToWhatsApp } from "../../lib/pdfReportGenerator";
+
+import { apiService } from "../../lib/api";
 
 const EXPENSE_CATEGORIES = [
   "Petrol",
@@ -27,99 +30,210 @@ const EXPENSE_CATEGORIES = [
   "Other Expenses"
 ];
 
-const LOCAL_STORAGE_KEY = "expense_bill_details_records";
-
 const ExpensesTab: React.FC = () => {
-  // Local state instead of backend
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
+  const [selectedSite, setSelectedSite] = useState<string>("All");
   const [dataLoading, setDataLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     category: "",
     date: new Date().toISOString().split("T")[0],
     amount: "",
-    location: ""
+    siteId: ""
   });
 
   const [isAdding, setIsAdding] = useState(false);
 
-  // Load from local storage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) {
-      try {
-        setExpenses(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse local expenses", e);
-      }
-    }
-    setDataLoading(false);
-  }, []);
+  // Dynamic Unique Sites Extractor from current expenses and assignments
+  const uniqueSites = Array.from(
+    new Set(
+      (expenses || [])
+        .map((e: any) => {
+          const siteObj = sites.find(s => s.id === e.site || s.id === e.assignment);
+          return e.site_location || e.location || (siteObj ? (siteObj.name || siteObj.site_location) : null);
+        })
+        .filter(Boolean)
+    )
+  );
 
-  // Save to local storage whenever expenses change
-  useEffect(() => {
-    if (!dataLoading) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(expenses));
+  // Dynamic filtered expenses list
+  const filteredExpenses = selectedSite === "All"
+    ? (expenses || [])
+    : (expenses || []).filter((e: any) => {
+        const siteObj = sites.find(s => s.id === e.site || s.id === e.assignment);
+        const siteName = e.site_location || e.location || (siteObj ? (siteObj.name || siteObj.site_location) : "General");
+        return siteName === selectedSite;
+      });
+
+  // Load from backend on mount
+  // Load from backend on mount
+  const fetchExpenses = async () => {
+    try {
+      setDataLoading(true);
+      const [expenseData, assignmentData] = await Promise.all([
+        apiService.getExpenses(),
+        apiService.getWorkforceAssignments()
+      ]);
+      
+      const assignments = assignmentData || [];
+
+      // Create a unique list based on site location from assignments
+      const mergedSitesMap = new Map();
+      
+      assignments.forEach((a: any) => {
+        const siteName = (a.site_location || a.site_details?.site_location || a.site_details?.name || "General").trim();
+        const nameLower = siteName.toLowerCase();
+        
+        if (siteName && !mergedSitesMap.has(nameLower)) {
+          mergedSitesMap.set(nameLower, { 
+            id: a.id, 
+            site_location: siteName 
+          });
+        }
+      });
+
+      setExpenses(expenseData);
+      setSites(Array.from(mergedSitesMap.values()));
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setDataLoading(false);
     }
-  }, [expenses, dataLoading]);
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
 
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.category || !formData.amount || !formData.location) {
-      return alert("Please fill in Category, Amount, and Location");
+    const typedLocation = formData.siteId;
+
+    if (!formData.category || !formData.amount || !typedLocation) {
+      return alert("Please fill in Category, Amount, and Site Location");
     }
 
     try {
       setIsAdding(true);
-      const newRecord = {
-        id: Date.now().toString(),
-        date: formData.date,
-        category: formData.category,
+      
+      // 1. RE-FETCH ASSIGNMENTS TO FIND THE ID
+      const allAssignments = await apiService.getWorkforceAssignments();
+      const normalize = (s: string) => (s || "").trim().toLowerCase();
+      
+      // Find an assignment that matches the typed location
+      const match = allAssignments.find((a: any) => 
+        normalize(a.site_location || a.site_details?.site_location || "") === normalize(typedLocation)
+      );
+
+      if (!match) {
+        setIsAdding(false);
+        return alert(`Error: No workforce assignment found for "${typedLocation}". \n\nPlease ensure this location exists in your Workforce Database first.`);
+      }
+
+      // 2. PREPARE THE PAYLOAD (Use exact backend field names)
+      const payload = {
+        date: formData.date, // Backend wants 'date'
+        expense_type: formData.category,
         amount: Number(formData.amount),
-        location: formData.location,
-        createdAt: new Date().toISOString()
+        site_location: typedLocation,
+        assignment: match.id // Backend wants 'assignment' (PK)
       };
+
+      await apiService.createExpense(payload);
+      await fetchExpenses();
       
-      setExpenses(prev => [...prev, newRecord]);
-      
-      setFormData(prev => ({
-        ...prev,
-        category: "",
-        amount: "",
-        location: ""
-      }));
-      alert("Expense record added locally");
-    } catch (err) {
+      setFormData(prev => ({ ...prev, category: "", amount: "", siteId: "" }));
+      alert("Expense successfully stored in Cloud!");
+    } catch (err: any) {
       console.error(err);
-      alert("Error adding expense");
+      alert("Error: Cloud rejected the record. Please check if the location is registered.");
     } finally {
       setIsAdding(false);
     }
   };
 
-  const handleDeleteExpense = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
-      setExpenses(prev => prev.filter(e => e.id !== id));
+  const handleDeleteExpense = async (id: string) => {
+    if (!window.confirm("Permanently delete this record from the cloud?")) return;
+    try {
+      await apiService.deleteExpense(id);
+      alert("Record deleted successfully!");
+      await fetchExpenses();
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Error: Could not delete record from cloud.");
     }
   };
 
-  const generateReportData = () => {
-    const tableBody = expenses.map((e, idx) => [
-      idx + 1,
-      new Date(e.date).toLocaleDateString("en-GB"),
-      e.category,
-      e.location || "N/A",
-      `₹${e.amount.toLocaleString()}`
-    ]);
+  const handlePrintSingle = (e: any) => {
+    const date = e.expense_date || e.date;
+    const type = e.expense_type || e.category;
+    const siteObj = sites.find(s => s.id === e.site || s.id === e.assignment);
+    const siteName = e.site_location || e.location || (siteObj ? (siteObj.name || siteObj.site_location) : "General");
+    const amount = e.amount || 0;
 
-    const grandTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const doc = generateProfessionalPDF({
+      title: "Project Expense Voucher",
+      engineer: "Administrative Branch",
+      site: siteName,
+      period: `Dated: ${new Date(date).toLocaleDateString("en-GB")}`,
+      tableHead: [["Date", "Category", "Location", "Amount"]],
+      tableBody: [[
+        new Date(date).toLocaleDateString("en-GB"),
+        type,
+        siteName,
+        `₹${amount.toLocaleString()}`
+      ]],
+      filename: `Expense_${type}`
+    });
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
+  };
+
+  const handleWhatsAppSingle = async (e: any) => {
+    const type = e.expense_type || e.category;
+    const siteObj = sites.find(s => s.id === e.site || s.id === e.assignment);
+    const siteName = e.site_location || e.location || (siteObj ? (siteObj.name || siteObj.site_location) : "General");
+    const amount = e.amount || 0;
+    const summary = `*Project Expense - ${type}*\n*Site:* ${siteName}\n*Amount:* ₹${amount.toLocaleString()}`;
+    
+    const doc = generateProfessionalPDF({
+      title: "Project Expense Voucher",
+      engineer: "Administrative Branch",
+      site: siteName,
+      tableHead: [["Category", "Amount", "Location"]],
+      tableBody: [[type, `₹${amount.toLocaleString()}`, siteName]]
+    });
+    await shareToWhatsApp(doc, `Expense_${type}`, summary);
+  };
+
+  const generateReportData = () => {
+    const tableBody = filteredExpenses.map((e, idx) => {
+      const date = e.expense_date || e.date;
+      const type = e.expense_type || e.category;
+      const siteObj = sites.find(s => s.id === e.site || s.id === e.assignment);
+      const siteName = e.site_location || e.location || (siteObj ? (siteObj.name || siteObj.site_location) : "General");
+      const amount = e.amount || 0;
+
+      return [
+        idx + 1,
+        date ? new Date(date).toLocaleDateString("en-GB") : "N/A",
+        type,
+        siteName,
+        `₹${amount.toLocaleString()}`
+      ];
+    });
+
+    const grandTotal = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
     return {
-      title: "Expense Bill Details",
-      period: `Generated on: ${new Date().toLocaleDateString()}`,
-      tableHead: [["No", "Date", "Expense Type", "Location", "Amount"]],
+      title: selectedSite === "All" ? "Overall Project Expenses" : `Project Expenses - ${selectedSite}`,
+      site: selectedSite === "All" ? "All Sites" : selectedSite,
+      period: `Generated on: ${new Date().toLocaleDateString("en-GB")}`,
+      tableHead: [["No", "Date", "Category", "Location", "Amount"]],
       tableBody,
-      tableFooter: ["TOTAL", "", "", "", `₹${grandTotal.toLocaleString()}`]
+      tableFooter: ["TOTALS", "", "", "", `₹${grandTotal.toLocaleString()}`],
+      filename: selectedSite === "All" ? "Overall_Expenses_Report" : `Expenses_${selectedSite}`
     };
   };
 
@@ -127,16 +241,20 @@ const ExpensesTab: React.FC = () => {
     const data = generateReportData();
     if (data.tableBody.length === 0) return alert("No records to print.");
     const doc = generateProfessionalPDF(data);
-    doc.save(`Expense_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
   };
 
   const handleWhatsApp = async () => {
     const data = generateReportData();
     if (data.tableBody.length === 0) return alert("No records to share.");
     const doc = generateProfessionalPDF(data);
-    const grandTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const summary = `*Expense Bill Details*\n*Date:* ${new Date().toLocaleDateString()}\n*Total Amount: ₹${grandTotal.toLocaleString()}*`;
-    await shareToWhatsApp(doc, `Expense_Report`, summary);
+    const grandTotal = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const summary = `*Project Expense Report*\n` +
+      `*Site:* ${selectedSite === "All" ? "All Sites" : selectedSite}\n` +
+      `*Total Expenditure:* ₹${grandTotal.toLocaleString()}\n` +
+      `*Date:* ${new Date().toLocaleDateString("en-GB")}`;
+    await shareToWhatsApp(doc, selectedSite === "All" ? "Overall_Expenses_Report" : `Expenses_${selectedSite}`, summary);
   };
 
   return (
@@ -153,9 +271,40 @@ const ExpensesTab: React.FC = () => {
           <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Project and Operational Expense Tracking (Offline Mode)</p>
         </div>
         
-        <div className="flex gap-3">
-          <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 transition-all font-bold text-xs uppercase tracking-widest shadow-sm"><Printer className="w-4 h-4" /> Print</button>
-          <button onClick={handleWhatsApp} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all font-bold text-xs uppercase tracking-widest shadow-sm"><Share2 className="w-4 h-4" /> WhatsApp</button>
+        {/* Top Control Bar with Site Filter and Print Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Site Location Selector */}
+          <div className="relative group">
+            <select
+              value={selectedSite}
+              onChange={(e) => setSelectedSite(e.target.value)}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-xs font-bold text-slate-600 dark:text-slate-200 hover:text-indigo-600 transition-all cursor-pointer shadow-sm pr-10 appearance-none min-w-[160px]"
+            >
+              <option value="All">All Site Locations</option>
+              {uniqueSites.map((site) => (
+                <option key={site} value={site}>
+                  {site}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:rotate-180 transition-transform" />
+          </div>
+
+          {/* Print Overall Button */}
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
+          >
+            <Printer className="w-4 h-4" /> Print Overall
+          </button>
+
+          {/* Share Overall to WhatsApp */}
+          <button
+            onClick={handleWhatsApp}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
+          >
+            <Share2 className="w-4 h-4" /> Share Overall
+          </button>
         </div>
       </div>
 
@@ -209,17 +358,18 @@ const ExpensesTab: React.FC = () => {
             />
           </div>
 
-          {/* Location */}
+          {/* Site Input (Changed from Select to Text) */}
           <div className="flex-1 w-full space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2 ml-1">
-              <MapPin className="w-3.5 h-3.5 text-rose-500" /> Location
+              <MapPin className="w-3.5 h-3.5 text-rose-500" /> Site
             </label>
             <input
               type="text"
-              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-4 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner"
-              value={formData.location}
-              onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
-              placeholder="Enter Site/Area"
+              required
+              placeholder="Enter Site Location (e.g. Erode)"
+              className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl p-4 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-rose-500/20 transition-all shadow-inner outline-none"
+              value={formData.siteId}
+              onChange={e => setFormData(prev => ({ ...prev, siteId: e.target.value }))}
             />
           </div>
 
@@ -239,7 +389,7 @@ const ExpensesTab: React.FC = () => {
         <div className="bg-white dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Expenditure</p>
-            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">₹{expenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">₹{filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center text-rose-600">
             <TrendingUp className="w-6 h-6" />
@@ -248,7 +398,7 @@ const ExpensesTab: React.FC = () => {
         <div className="bg-white dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Record Count</p>
-            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{expenses.length} Entries</p>
+            <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">{filteredExpenses.length} Entries</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600">
             <Tag className="w-6 h-6" />
@@ -257,7 +407,18 @@ const ExpensesTab: React.FC = () => {
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden animate-slide-up">
+      <div className="bg-white dark:bg-slate-900/60 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl overflow-hidden animate-slide-up relative">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-rose-500 via-indigo-500 to-emerald-500" />
+        
+        <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800 dark:text-white flex items-center gap-3">
+              <Receipt className="w-4 h-4 text-rose-500" /> Expense Records {selectedSite !== "All" ? `- ${selectedSite}` : ""}
+            </h3>
+            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest italic">Stored cloud expenditures and site context</p>
+          </div>
+        </div>
+
         <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -271,37 +432,47 @@ const ExpensesTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {expenses.slice().reverse().map((e, idx) => (
-                <tr key={e.id!} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all">
-                  <td className="p-6 text-[10px] font-black text-slate-400">{String(expenses.length - idx).padStart(2, "0")}</td>
-                  <td className="p-6 text-sm font-bold text-slate-800 dark:text-slate-200">
-                    {new Date(e.date).toLocaleDateString("en-GB")}
-                  </td>
-                  <td className="p-6">
-                    <span className="inline-flex bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-500/20">
-                      {e.category}
-                    </span>
-                  </td>
-                  <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-400">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-3 h-3 text-slate-400" />
-                      {e.location || "General"}
-                    </div>
-                  </td>
-                  <td className="p-6 text-right">
-                    <p className="font-black text-slate-900 dark:text-white">₹{e.amount.toLocaleString()}</p>
-                  </td>
-                  <td className="p-6 text-center">
-                    <button 
-                      onClick={() => handleDeleteExpense(e.id)}
-                      className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {expenses.length === 0 && (
+              {filteredExpenses.slice().reverse().map((e, idx) => {
+                const date = e.expense_date || e.date;
+                const type = e.expense_type || e.category;
+                
+                // Smart site name lookup (checks siteObj first, then direct cloud fields)
+                const siteObj = sites.find(s => s.id === e.site || s.id === e.assignment);
+                const siteName = e.site_location || e.location || (siteObj ? (siteObj.name || siteObj.site_location) : "General");
+                
+                const amount = e.amount || 0;
+
+                return (
+                  <tr key={e.id!} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-all">
+                    <td className="p-6 text-[10px] font-black text-slate-400">{String(filteredExpenses.length - idx).padStart(2, "0")}</td>
+                    <td className="p-6 text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {date ? new Date(date).toLocaleDateString("en-GB") : "N/A"}
+                    </td>
+                    <td className="p-6">
+                      <span className="inline-flex bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-500/20">
+                        {type}
+                      </span>
+                    </td>
+                    <td className="p-6 text-sm font-bold text-slate-600 dark:text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                        {siteName}
+                      </div>
+                    </td>
+                    <td className="p-6 text-right">
+                      <p className="font-black text-slate-900 dark:text-white">₹{amount.toLocaleString()}</p>
+                    </td>
+                    <td className="p-6 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => handlePrintSingle(e)} className="p-2 text-slate-300 hover:text-indigo-500 transition-colors" title="Print Single"><Printer className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleWhatsAppSingle(e)} className="p-2 text-slate-300 hover:text-emerald-500 transition-colors" title="WhatsApp Single"><Share2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDeleteExpense(e.id)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors" title="Delete Record"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredExpenses.length === 0 && (
                 <tr>
                   <td colSpan={6} className="p-20 text-center">
                     <div className="flex flex-col items-center gap-3">

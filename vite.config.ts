@@ -10,9 +10,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api-manpower': {
-        target: 'https://unlanded-isela-unmunificently.ngrok-free.dev',
+        target: 'https://swarm-guidance-uplifting.ngrok-free.dev',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api-manpower/, ''),
+        rewrite: (path) => path.replace(/^\/api-manpower/, '/api'),
         headers: {
           'ngrok-skip-browser-warning': 'true',
         },

@@ -22,9 +22,12 @@ import {
   Heart,
   Shield,
   Gem,
-  Home
+  Home,
+  Trash2
 } from "lucide-react";
 import { generateProfessionalPDF, shareToWhatsApp } from "../../lib/pdfReportGenerator";
+
+import { apiService } from "../../lib/api";
 
 interface BalanceState {
   // Assets
@@ -72,7 +75,36 @@ const BalanceSheetTab: React.FC = () => {
     netBalance: 0
   });
 
-  const [history, setHistory] = useState<(BalanceState & { totals: typeof totals; date: string; id: string })[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleDeleteBalance = async (id: any) => {
+    if (!window.confirm("Permanently delete this audit log from the cloud?")) return;
+    try {
+      await apiService.deleteBalanceSheet(id);
+      alert("Record successfully deleted!");
+      await fetchHistory();
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Error: Could not delete balance record.");
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setIsLoading(true);
+      const data = await apiService.getBalanceSheets();
+      setHistory(data);
+    } catch (err) {
+      console.error("Error fetching balance sheets:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   useEffect(() => {
     const inflow = 
@@ -106,34 +138,42 @@ const BalanceSheetTab: React.FC = () => {
     setData(prev => ({ ...prev, [field]: num }));
   };
 
-  const handleCommit = () => {
-    const newRecord = {
-      ...data,
-      totals: { ...totals },
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      id: Math.random().toString(36).substr(2, 9)
-    };
-    setHistory(prev => [newRecord, ...prev]);
-    alert("Financial Record Successfully Stored!");
-    
-    // Reset inputs for next entry
-    setData({
-      bbfCashInHand: 0,
-      bbfCashInBank: 0,
-      presentCashInHand: 0,
-      presentCashInBank: 0,
-      amountYetToBeReceived: 0,
-      propertyAsset: 0,
-      paymentToStaff: 0,
-      paymentToLabour: 0,
-      otherExpenses: 0,
-      advanceToLabour: 0,
-      charityFund: 0,
-      pilgrimageFund: 0,
-      emergencyFund: 0,
-      futureFund: 0,
-      propertyLiability: 0
-    });
+  const handleCommit = async () => {
+    try {
+      const payload = {
+        ...data,
+        inflow: totals.inflow,
+        outflow: totals.outflow,
+        net_balance: totals.netBalance,
+        date: new Date().toISOString().split("T")[0] // Use YYYY-MM-DD
+      };
+      
+      await apiService.createBalanceSheet(payload);
+      alert("Financial Record Successfully Stored in Cloud!");
+      await fetchHistory();
+      
+      // Reset inputs for next entry
+      setData({
+        bbfCashInHand: 0,
+        bbfCashInBank: 0,
+        presentCashInHand: 0,
+        presentCashInBank: 0,
+        amountYetToBeReceived: 0,
+        propertyAsset: 0,
+        paymentToStaff: 0,
+        paymentToLabour: 0,
+        otherExpenses: 0,
+        advanceToLabour: 0,
+        charityFund: 0,
+        pilgrimageFund: 0,
+        emergencyFund: 0,
+        futureFund: 0,
+        propertyLiability: 0
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Error storing balance record to cloud.");
+    }
   };
 
   const renderInput = (label: string, field: keyof BalanceState, icon: React.ReactNode, color: string) => (
@@ -155,62 +195,88 @@ const BalanceSheetTab: React.FC = () => {
   );
 
   const handlePrint = (record: any) => {
+    // Robust mapping for both frontend state and backend cloud data
+    const getValue = (fields: string[]) => {
+      for (const f of fields) {
+        if (record[f] !== undefined && record[f] !== null) return Number(record[f]);
+      }
+      return 0;
+    };
+
+    const inflow = record.total_assets || record.inflow || record.totals?.inflow || 0;
+    const outflow = record.total_liabilities || record.outflow || record.totals?.outflow || 0;
+    const net = record.net_balance !== undefined ? record.net_balance : (inflow - outflow);
+    const date = record.date || record.created_at || "N/A";
+
     const reportData = {
       title: "Balance Sheet Statement",
-      date: record.date,
+      date: date,
       tableHead: [["Category", "Details", "Amount (₹)"]],
       tableBody: [
-        ["ASSETS (BBF)", "Cash in Hand", `₹${record.bbfCashInHand.toLocaleString()}`],
-        ["ASSETS (BBF)", "Cash in Bank", `₹${record.bbfCashInBank.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Cash in Hand", `₹${record.presentCashInHand.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Cash in Bank", `₹${record.presentCashInBank.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Yet to Receive", `₹${record.amountYetToBeReceived.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Property", `₹${record.propertyAsset.toLocaleString()}`],
+        ["ASSETS (BBF)", "Cash in Hand", `₹${getValue(['bbf_cash_in_hand', 'bbfCashInHand']).toLocaleString()}`],
+        ["ASSETS (BBF)", "Cash in Bank", `₹${getValue(['bbf_cash_in_bank', 'bbfCashInBank']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Cash in Hand", `₹${getValue(['current_cash_in_hand', 'presentCashInHand']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Cash in Bank", `₹${getValue(['current_cash_in_bank', 'presentCashInBank']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Yet to Receive", `₹${getValue(['yet_to_be_received', 'amountYetToBeReceived']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Property", `₹${getValue(['asset_property', 'propertyAsset']).toLocaleString()}`],
         ["-", "-", "-"],
-        ["LIABILITIES", "Staff Payment", `₹${record.paymentToStaff.toLocaleString()}`],
-        ["LIABILITIES", "Labour Payment", `₹${record.paymentToLabour.toLocaleString()}`],
-        ["LIABILITIES", "Other Expenses", `₹${record.otherExpenses.toLocaleString()}`],
-        ["LIABILITIES", "Advance to Labour", `₹${record.advanceToLabour.toLocaleString()}`],
-        ["LIABILITIES", "Charity Fund", `₹${record.charityFund.toLocaleString()}`],
-        ["LIABILITIES", "Pilgrimage Fund", `₹${record.pilgrimageFund.toLocaleString()}`],
-        ["LIABILITIES", "Emergency Fund", `₹${record.emergencyFund.toLocaleString()}`],
-        ["LIABILITIES", "Future Fund", `₹${record.futureFund.toLocaleString()}`],
-        ["LIABILITIES", "Property", `₹${record.propertyLiability.toLocaleString()}`],
+        ["LIABILITIES", "Staff Payment", `₹${getValue(['payment_to_staff', 'paymentToStaff']).toLocaleString()}`],
+        ["LIABILITIES", "Labour Payment", `₹${getValue(['payment_to_labour', 'paymentToLabour']).toLocaleString()}`],
+        ["LIABILITIES", "Other Expenses", `₹${getValue(['other_expenses', 'otherExpenses']).toLocaleString()}`],
+        ["LIABILITIES", "Advance to Labour", `₹${getValue(['advance_to_labour', 'advanceToLabour']).toLocaleString()}`],
+        ["LIABILITIES", "Charity Fund", `₹${getValue(['charity_fund', 'charityFund']).toLocaleString()}`],
+        ["LIABILITIES", "Pilgrimage Fund", `₹${getValue(['pilgrimage_fund', 'pilgrimageFund']).toLocaleString()}`],
+        ["LIABILITIES", "Emergency Fund", `₹${getValue(['emergency_fund', 'emergencyFund']).toLocaleString()}`],
+        ["LIABILITIES", "Future Fund", `₹${getValue(['future_fund', 'futureFund']).toLocaleString()}`],
+        ["LIABILITIES", "Property", `₹${getValue(['liability_property', 'propertyLiability']).toLocaleString()}`],
       ],
-      tableFooter: ["NET POSITION", "", `₹${record.totals.netBalance.toLocaleString()}`]
+      tableFooter: ["NET POSITION", "", `₹${Number(net).toLocaleString()}`]
     };
     const doc = generateProfessionalPDF(reportData);
-    doc.save(`Balance_Sheet_${record.date.replace(/ /g, "_")}.pdf`);
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
   };
 
   const handleShare = async (record: any) => {
+    const getValue = (fields: string[]) => {
+      for (const f of fields) {
+        if (record[f] !== undefined && record[f] !== null) return Number(record[f]);
+      }
+      return 0;
+    };
+
+    const inflow = record.total_assets || record.inflow || record.totals?.inflow || 0;
+    const outflow = record.total_liabilities || record.outflow || record.totals?.outflow || 0;
+    const net = record.net_balance !== undefined ? record.net_balance : (inflow - outflow);
+    const date = record.date || record.created_at || "N/A";
+
     const reportData = {
       title: "Balance Sheet Statement",
-      date: record.date,
+      date: date,
       tableHead: [["Category", "Details", "Amount (₹)"]],
       tableBody: [
-        ["ASSETS (BBF)", "Cash in Hand", `₹${record.bbfCashInHand.toLocaleString()}`],
-        ["ASSETS (BBF)", "Cash in Bank", `₹${record.bbfCashInBank.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Cash in Hand", `₹${record.presentCashInHand.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Cash in Bank", `₹${record.presentCashInBank.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Yet to Receive", `₹${record.amountYetToBeReceived.toLocaleString()}`],
-        ["ASSETS (PRESENT)", "Property", `₹${record.propertyAsset.toLocaleString()}`],
+        ["ASSETS (BBF)", "Cash in Hand", `₹${getValue(['bbf_cash_in_hand', 'bbfCashInHand']).toLocaleString()}`],
+        ["ASSETS (BBF)", "Cash in Bank", `₹${getValue(['bbf_cash_in_bank', 'bbfCashInBank']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Cash in Hand", `₹${getValue(['current_cash_in_hand', 'presentCashInHand']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Cash in Bank", `₹${getValue(['current_cash_in_bank', 'presentCashInBank']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Yet to Receive", `₹${getValue(['yet_to_be_received', 'amountYetToBeReceived']).toLocaleString()}`],
+        ["ASSETS (PRESENT)", "Property", `₹${getValue(['asset_property', 'propertyAsset']).toLocaleString()}`],
         ["-", "-", "-"],
-        ["LIABILITIES", "Staff Payment", `₹${record.paymentToStaff.toLocaleString()}`],
-        ["LIABILITIES", "Labour Payment", `₹${record.paymentToLabour.toLocaleString()}`],
-        ["LIABILITIES", "Other Expenses", `₹${record.otherExpenses.toLocaleString()}`],
-        ["LIABILITIES", "Advance to Labour", `₹${record.advanceToLabour.toLocaleString()}`],
-        ["LIABILITIES", "Charity Fund", `₹${record.charityFund.toLocaleString()}`],
-        ["LIABILITIES", "Pilgrimage Fund", `₹${record.pilgrimageFund.toLocaleString()}`],
-        ["LIABILITIES", "Emergency Fund", `₹${record.emergencyFund.toLocaleString()}`],
-        ["LIABILITIES", "Future Fund", `₹${record.futureFund.toLocaleString()}`],
-        ["LIABILITIES", "Property", `₹${record.propertyLiability.toLocaleString()}`],
+        ["LIABILITIES", "Staff Payment", `₹${getValue(['payment_to_staff', 'paymentToStaff']).toLocaleString()}`],
+        ["LIABILITIES", "Labour Payment", `₹${getValue(['payment_to_labour', 'paymentToLabour']).toLocaleString()}`],
+        ["LIABILITIES", "Other Expenses", `₹${getValue(['other_expenses', 'otherExpenses']).toLocaleString()}`],
+        ["LIABILITIES", "Advance to Labour", `₹${getValue(['advance_to_labour', 'advanceToLabour']).toLocaleString()}`],
+        ["LIABILITIES", "Charity Fund", `₹${getValue(['charity_fund', 'charityFund']).toLocaleString()}`],
+        ["LIABILITIES", "Pilgrimage Fund", `₹${getValue(['pilgrimage_fund', 'pilgrimageFund']).toLocaleString()}`],
+        ["LIABILITIES", "Emergency Fund", `₹${getValue(['emergency_fund', 'emergencyFund']).toLocaleString()}`],
+        ["LIABILITIES", "Future Fund", `₹${getValue(['future_fund', 'futureFund']).toLocaleString()}`],
+        ["LIABILITIES", "Property", `₹${getValue(['liability_property', 'propertyLiability']).toLocaleString()}`],
       ],
-      tableFooter: ["NET POSITION", "", `₹${record.totals.netBalance.toLocaleString()}`]
+      tableFooter: ["NET POSITION", "", `₹${Number(net).toLocaleString()}`]
     };
     const doc = generateProfessionalPDF(reportData);
-    const summary = `*Balance Sheet Statement*\nDate: ${record.date}\nAssets: ₹${record.totals.inflow.toLocaleString()}\nLiabilities: ₹${record.totals.outflow.toLocaleString()}\n*Net Balance: ₹${record.totals.netBalance.toLocaleString()}*`;
-    await shareToWhatsApp(doc, `Balance_Sheet_${record.date}`, summary);
+    const summary = `*Balance Sheet Statement*\nDate: ${date}\nAssets: ₹${Number(inflow).toLocaleString()}\nLiabilities: ₹${Number(outflow).toLocaleString()}\n*Net Balance: ₹${Number(net).toLocaleString()}*`;
+    await shareToWhatsApp(doc, `Balance_Sheet_${date}`, summary);
   };
 
   const handlePrintCurrent = () => {
@@ -250,25 +316,28 @@ const BalanceSheetTab: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="bg-slate-900 dark:bg-slate-800 p-6 rounded-[2.5rem] shadow-2xl border border-slate-800 flex items-center gap-8 px-10">
-             <div className="text-center">
-               <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Current Inflow</span>
-               <span className="text-2xl font-black text-emerald-400">₹{totals.inflow.toLocaleString()}</span>
-             </div>
-             <div className="w-px h-12 bg-slate-700" />
-             <div className="text-center">
-               <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Current Outflow</span>
-               <span className="text-2xl font-black text-rose-400">₹{totals.outflow.toLocaleString()}</span>
-             </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Print Overall Button */}
+          <button
+            onClick={handlePrintCurrent}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
+          >
+            <Printer className="w-4 h-4" /> Print Overall
+          </button>
+
+          {/* WhatsApp Share Button */}
+          <button
+            onClick={handleShareCurrent}
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white transition-all font-bold text-xs uppercase tracking-widest shadow-sm"
+          >
+            <Share2 className="w-4 h-4" /> Share Overall
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
         {/* ── Left Side: Assets ── */}
-        <div  className="space-y-8">
-          <div className="bg-white dark:bg-slate-900/60 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
+        <div className="bg-white dark:bg-slate-900/60 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/40 relative overflow-hidden group flex flex-col h-full">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
             <div className="flex items-center justify-between mb-10">
               <div className="flex items-center gap-4">
@@ -307,7 +376,7 @@ const BalanceSheetTab: React.FC = () => {
                 </div>
               </div>
               
-              <div className="pt-10 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-10 border-t border-slate-100 dark:border-slate-800 mt-auto">
                 <div className="bg-emerald-600/5 border border-emerald-100 dark:border-emerald-900/30 p-8 rounded-[2rem] flex items-center justify-between group-hover:bg-emerald-600/10 transition-colors">
                   <div>
                     <span className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Total Assets Value</span>
@@ -318,11 +387,9 @@ const BalanceSheetTab: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
 
         {/* ── Right Side: Liabilities ── */}
-        <div className="space-y-8">
-          <div className="bg-white dark:bg-slate-900/60 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/40 relative overflow-hidden group">
+        <div className="bg-white dark:bg-slate-900/60 rounded-[3rem] p-10 border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/40 relative overflow-hidden group flex flex-col h-full">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-rose-500" />
             <div className="flex items-center justify-between mb-10">
               <div className="flex items-center gap-4">
@@ -347,7 +414,7 @@ const BalanceSheetTab: React.FC = () => {
                 {renderInput("Property", "propertyLiability", <Home className="w-3.5 h-3.5" />, "text-slate-600")}
               </div>
 
-              <div className="pt-10 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-10 border-t border-slate-100 dark:border-slate-800 mt-auto">
                 <div className="bg-rose-600/5 border border-rose-100 dark:border-rose-900/30 p-8 rounded-[2rem] flex items-center justify-between group-hover:bg-rose-600/10 transition-colors">
                   <div>
                     <span className="block text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Total Liabilities Value</span>
@@ -358,19 +425,43 @@ const BalanceSheetTab: React.FC = () => {
               </div>
             </div>
           </div>
+      </div>
+
+      {/* ── Net Balance Bottom Card ── */}
+      <div className="mb-12 max-w-2xl mx-auto">
+        <div className={`p-8 rounded-[2.5rem] border-2 flex items-center justify-between transition-all shadow-xl hover:scale-[1.01] duration-300 ${
+          totals.netBalance >= 0 
+            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300' 
+            : 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-300'
+        }`}>
+          <div>
+            <span className={`block text-[10px] font-black uppercase tracking-widest mb-2 ${
+              totals.netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+            }`}>
+              Net Sheet Position
+            </span>
+            <h3 className="text-3xl font-black tracking-tight flex items-center gap-3">
+              ₹ {totals.netBalance.toLocaleString()}
+              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+                totals.netBalance >= 0 
+                  ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300' 
+                  : 'bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-300'
+              }`}>
+                {totals.netBalance >= 0 ? 'Surplus' : 'Deficit'}
+              </span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-2 font-medium">Assets value minus current liabilities obligations</p>
+          </div>
+          <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center shadow-inner ${
+            totals.netBalance >= 0 ? 'bg-emerald-100/50 dark:bg-emerald-900/30 text-emerald-600' : 'bg-rose-100/50 dark:bg-rose-900/30 text-rose-600'
+          }`}>
+            <Calculator className="w-8 h-8" />
+          </div>
         </div>
       </div>
 
       {/* ── Submit Section ── */}
-      <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-16">
-        <button
-          onClick={handlePrintCurrent}
-          className="group relative bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-10 py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs transition-all shadow-xl hover:-translate-y-1 active:scale-95 flex items-center gap-4 border border-slate-100 dark:border-slate-700"
-        >
-          <Printer className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-          Print
-        </button>
-
+      <div className="flex items-center justify-center mb-16">
         <button
           onClick={handleCommit}
           className="group relative bg-indigo-600 hover:bg-indigo-500 text-white px-20 py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs transition-all shadow-2xl hover:-translate-y-1 active:scale-95 flex items-center gap-6 overflow-hidden"
@@ -378,14 +469,6 @@ const BalanceSheetTab: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           <Save className="w-5 h-5 group-hover:rotate-12 transition-transform" />
           Store Record
-        </button>
-
-        <button
-          onClick={handleShareCurrent}
-          className="group relative bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-7 rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs transition-all shadow-xl hover:-translate-y-1 active:scale-95 flex items-center gap-4"
-        >
-          <Share2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-          WhatsApp
         </button>
       </div>
 
@@ -420,14 +503,21 @@ const BalanceSheetTab: React.FC = () => {
                   <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">No records stored yet. Click 'Store Balance Record' to save.</td>
                 </tr>
               ) : (
-                history.map((record) => (
-                  <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                    <td className="px-6 py-6 font-bold text-slate-700 dark:text-slate-300 text-sm">{record.date}</td>
-                    <td className="px-6 py-6 font-black text-emerald-600 text-right text-sm">₹{record.totals.inflow.toLocaleString()}</td>
-                    <td className="px-6 py-6 font-black text-rose-600 text-right text-sm">₹{record.totals.outflow.toLocaleString()}</td>
-                    <td className={`px-6 py-6 font-black text-right text-sm ${record.totals.netBalance >= 0 ? 'text-indigo-600' : 'text-rose-800'}`}>
-                      ₹{record.totals.netBalance.toLocaleString()}
-                    </td>
+                history.map((record) => {
+                  const inflow = record.total_assets || record.inflow || record.totals?.inflow || 0;
+                  const outflow = record.total_liabilities || record.outflow || record.totals?.outflow || 0;
+                  const net = record.net_balance !== undefined ? record.net_balance : (inflow - outflow);
+                  const dateStr = record.date || record.created_at;
+                  const date = dateStr ? new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "N/A";
+
+                  return (
+                    <tr key={record.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                      <td className="px-6 py-6 font-bold text-slate-700 dark:text-slate-300 text-sm">{date}</td>
+                      <td className="px-6 py-6 font-black text-emerald-600 text-right text-sm">₹{inflow.toLocaleString()}</td>
+                      <td className="px-6 py-6 font-black text-rose-600 text-right text-sm">₹{outflow.toLocaleString()}</td>
+                      <td className={`px-6 py-6 font-black text-right text-sm ${net >= 0 ? 'text-indigo-600' : 'text-rose-800'}`}>
+                        ₹{net.toLocaleString()}
+                      </td>
                     <td className="px-6 py-6 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button 
@@ -444,11 +534,19 @@ const BalanceSheetTab: React.FC = () => {
                         >
                           <Share2 className="w-4 h-4" />
                         </button>
+                        <button 
+                          onClick={() => handleDeleteBalance(record.id)}
+                          className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                );
+              })
+            )}
             </tbody>
           </table>
         </div>

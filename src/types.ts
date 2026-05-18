@@ -20,6 +20,8 @@ export interface Worker {
   wagePerDuty?: number;
   payoutRate?: number;
   isActive?: boolean;
+  mobile?: string;
+  phone?: string;
 }
 
 export interface Duty {
@@ -124,6 +126,8 @@ export interface WorkerProfile {
   life_insured_amount?: string;
   medical_insured_amount?: string;
   profileImage?: string | null;
+  siteId?: string;
+  selectedWage?: number;
 }
 
 export interface WorkerCategory {
