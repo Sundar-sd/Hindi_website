@@ -1,8 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/military/(.*)",
-      "destination": "https://guidance-glorifier-mango.ngrok-free.dev/military/$1"
+      "source": "/military/:path*",
+      "destination": "https://guidance-glorifier-mango.ngrok-free.dev/military/:path*"
     },
     {
       "source": "/(.*)",
