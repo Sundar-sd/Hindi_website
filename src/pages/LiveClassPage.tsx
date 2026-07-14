@@ -153,7 +153,7 @@ export default function LiveClassPage() {
   }, []);
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4">
+    <div className="min-h-screen pt-24 pb-32 px-4">
       <div className="max-w-5xl mx-auto space-y-10">
         {/* Header */}
         <div className="text-center">
@@ -192,7 +192,7 @@ export default function LiveClassPage() {
                 nowPlaying.map((cls) => (
                   <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden mb-6">
                     {activeClassId === cls.id ? (
-                      <div className="p-2">
+                      <div className="flex flex-col">
                         {videoFetchError ? (
                           <div className="aspect-video flex flex-col items-center justify-center bg-rose-50 border-2 border-rose-200 rounded-2xl text-center p-6">
                             <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mb-3">
@@ -208,7 +208,7 @@ export default function LiveClassPage() {
                               const driveIframeUrl = getGoogleDriveIframeUrl(videoUrl);
                               if (driveIframeUrl) {
                                 return (
-                                  <div className="aspect-video w-full rounded-t-3xl overflow-hidden bg-black relative group">
+                                  <div className="aspect-video w-full overflow-hidden bg-black relative group">
                                     <iframe 
                                       src={driveIframeUrl} 
                                       className="w-full h-full border-0" 

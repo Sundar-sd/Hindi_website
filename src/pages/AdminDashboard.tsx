@@ -59,12 +59,12 @@ const AdminDashboard: React.FC = () => {
   const deleteCourse = (id: number) => setCourses(courses.filter((c) => c.id !== id));
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
       <PremiumBackground />
 
       {/* ── Sidebar (Simplified for Performance) ── */}
-      <div className="w-72 bg-white border-r border-slate-200 flex flex-col relative z-20 shadow-xl">
-        <div className="p-8 border-b border-slate-100">
+      <div className="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col relative z-20 shadow-xl flex-shrink-0">
+        <div className="p-4 md:p-8 border-b border-slate-100 hidden md:block">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/20">
               <Layout className="w-6 h-6 text-white" />
@@ -76,7 +76,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <nav className="flex-1 p-5 space-y-1 mt-4 overflow-y-auto no-scrollbar">
+        <nav className="p-3 md:p-5 flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-1 overflow-x-auto md:overflow-y-auto no-scrollbar">
           {[
             { id: "courses", label: "Course Details", icon: Settings },
             { id: "manpower", label: "Manpower Services", icon: Briefcase },
@@ -88,7 +88,7 @@ const AdminDashboard: React.FC = () => {
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id as any); navigate(`/admin-dashboard?tab=${item.id}`); }}
-              className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-colors duration-200 group ${activeTab === item.id 
+              className={`flex-shrink-0 flex items-center gap-2 md:gap-4 px-4 py-2.5 md:px-5 md:py-3.5 rounded-xl md:rounded-2xl transition-colors duration-200 group ${activeTab === item.id 
                 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 font-bold" 
                 : "text-slate-500 hover:bg-slate-50 hover:text-indigo-600 font-semibold"}`}
             >
@@ -98,7 +98,7 @@ const AdminDashboard: React.FC = () => {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50/50 space-y-2">
+        <div className="hidden md:block p-6 border-t border-slate-100 bg-slate-50/50 space-y-2 mt-auto">
           <button
             onClick={() => navigate("/")}
             className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-indigo-600 hover:bg-indigo-50 transition-colors duration-200 font-bold text-xs uppercase tracking-wider group"
@@ -122,7 +122,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* ── Main Content ── */}
-      <div className="flex-1 overflow-auto p-12 relative no-scrollbar">
+      <div className="flex-1 overflow-auto p-4 md:p-12 relative no-scrollbar">
         
 
         <div className="animate-fade-in">

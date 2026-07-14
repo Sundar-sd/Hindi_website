@@ -341,7 +341,7 @@ const RecordedClassTab: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm">
         <div>
           <h2 className="text-3xl font-black text-slate-900 mb-2 flex items-center gap-3">
             <Video className="w-8 h-8 text-indigo-600" />
@@ -353,7 +353,7 @@ const RecordedClassTab: React.FC = () => {
         </div>
         <button
           onClick={() => { setShowForm(!showForm); resetForm(); }}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
+          className="flex w-full md:w-auto items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {showForm ? "Cancel" : "New Class"}
@@ -543,13 +543,13 @@ const RecordedClassTab: React.FC = () => {
         ) : (
           <div className="divide-y divide-slate-100">
             {classes.map((cls) => (
-              <div key={cls.id} className="p-6 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                    <Video className="w-7 h-7 text-indigo-600" />
+              <div key={cls.id} className="p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-start md:items-center gap-4 md:gap-5">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <Video className="w-6 h-6 md:w-7 md:h-7 text-indigo-600" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg">{cls.title}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-900 text-base md:text-lg truncate">{cls.title}</h3>
                     {cls.description && (
                       <p className="text-slate-500 text-sm mt-0.5">{cls.description}</p>
                     )}
@@ -566,7 +566,7 @@ const RecordedClassTab: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 pt-2 md:pt-0">
                   <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
                     getDisplayStatus(cls) === "scheduled" || getDisplayStatus(cls) === "UPCOMING"
                       ? "bg-amber-50 text-amber-600 border-amber-100"
