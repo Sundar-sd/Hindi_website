@@ -11,7 +11,7 @@ const getApiOrigin = (): string => {
       // fallback
     }
   }
-  return "https://api.codingboss.in";
+  return "http://127.0.0.1:9000";
 };
 const NGROK_BASE = getApiOrigin();
 

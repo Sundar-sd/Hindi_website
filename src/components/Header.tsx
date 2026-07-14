@@ -251,14 +251,41 @@ export default function Header() {
 
 
                 <div className="flex flex-col gap-3 pt-4 border-t border-purple-700/30">
-                  <Link to='/auth'>
-                    <button className="text-white hover:text-purple-300 py-2 text-left">
-                      Login
-                    </button>
-                  </Link>
-                  <button className="bg-gradient-to-r from-purple-500 to-purple-700 text-white px-6 py-3 rounded-full font-semibold">
-                    Get Started
-                  </button>
+                  {!isLoggedIn ? (
+                    <>
+                      <Link to='/auth' onClick={() => setIsMenuOpen(false)}>
+                        <button className="text-white hover:text-purple-300 py-2 text-left w-full">
+                          Login
+                        </button>
+                      </Link>
+                      <Link to="/courses" onClick={() => setIsMenuOpen(false)}>
+                        <button className="bg-gradient-to-r from-purple-500 to-purple-700 text-white px-6 py-3 rounded-full font-semibold w-full">
+                          Get Started
+                        </button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      {isAdmin && (
+                        <Link to="/admin-dashboard" onClick={() => setIsMenuOpen(false)}>
+                          <button className="text-white bg-indigo-600 hover:bg-indigo-500 transition-colors font-medium border border-indigo-500 px-6 py-3 rounded-full hover:shadow-lg w-full text-left">
+                            Admin Panel
+                          </button>
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('userLoggedIn');
+                          localStorage.removeItem('userEmail');
+                          localStorage.removeItem('admin');
+                          window.location.href = '/';
+                        }}
+                        className="text-white hover:text-red-300 transition-colors font-medium border border-white/20 px-6 py-3 rounded-full hover:bg-white/10 w-full text-left"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  )}
                 </div>
               </nav>
             </div>

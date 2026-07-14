@@ -4,7 +4,7 @@ import {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
-  : "/api-manpower";
+  : "http://127.0.0.1:9000/military";
 
 export const MANPOWER_ENDPOINTS = {
   engineers: `${API_BASE}/owners/`,

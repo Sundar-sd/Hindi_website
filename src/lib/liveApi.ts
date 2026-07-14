@@ -1,4 +1,7 @@
-const API_BASE = '/military/live';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
+  : "http://127.0.0.1:9000/military";
+const API_BASE = `${BASE_URL}/live`;
 
 export interface LiveEvent {
   id: string;
@@ -51,7 +54,7 @@ export const liveApi = {
   },
 
   joinStream: async (live_id: string, viewer_name: string = "Anonymous") => {
-    const res = await fetch('/military/viewer/join/', {
+    const res = await fetch(`${BASE_URL}/viewer/join/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ live_id, viewer_name })
@@ -85,7 +88,7 @@ export const liveApi = {
 
   getViewers: async (id: string) => {
     // Assuming backend takes a query param for live_id to filter viewers
-    const res = await fetch(`/military/viewers/?live_id=${id}`);
+    const res = await fetch(`${BASE_URL}/viewers/?live_id=${id}`);
     if (!res.ok) throw new Error('Failed to fetch viewers');
     return res.json();
   }

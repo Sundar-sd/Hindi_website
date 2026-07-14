@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, X } from "lucide-react";
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://api.codingboss.in/military/").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:9000/military").replace(/\/+$/, "");
 
 // --------------------------------------------------
 // Permanent Device ID Function (Keep This)
