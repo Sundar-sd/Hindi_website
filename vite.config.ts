@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/military': {
-        target: 'https://guidance-glorifier-mango.ngrok-free.dev',
+        target: 'https://concise-egomaniac-starved.ngrok-free.dev',
         changeOrigin: true,
       },
       '/api-manpower': {

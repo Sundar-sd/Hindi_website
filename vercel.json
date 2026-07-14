@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/military/:path*",
-      "destination": "https://guidance-glorifier-mango.ngrok-free.dev/military/:path*"
+      "destination": "https://concise-egomaniac-starved.ngrok-free.dev/military/:path*"
     },
     {
       "source": "/(.*)",
