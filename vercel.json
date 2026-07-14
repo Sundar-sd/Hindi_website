@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/military/(.*)",
+      "destination": "https://guidance-glorifier-mango.ngrok-free.dev/military/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

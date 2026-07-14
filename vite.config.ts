@@ -9,6 +9,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/military': {
+        target: 'https://guidance-glorifier-mango.ngrok-free.dev',
+        changeOrigin: true,
+      },
       '/api-manpower': {
         target: 'https://api.codingboss.in',
         changeOrigin: true,
