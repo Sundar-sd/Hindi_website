@@ -7,6 +7,7 @@ import CoursesPage from './pages/CoursesPage';
 import TeachersPage from './pages/TeachersPage';
 import BlogPage from './pages/BlogPage';
 import ContactPage from './pages/ContactPage';
+import LiveClassPage from './pages/LiveClassPage';
 import Footer from './components/Footer';
 import HindiLearningChat from './components/HindiLearningChat';
 import WhatsAppButton from "./components/WhatsAppButton";
@@ -169,6 +170,7 @@ function App() {
                 <Route path="/teachers" element={<TeachersPage />} />
                 <Route path="/blog" element={<BlogPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/live-class" element={<LiveClassPage />} />
                 <Route path="/auth" element={<Auth />} />
 
               </Routes>

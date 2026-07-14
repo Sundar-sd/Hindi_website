@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://copious-frill-parrot.ngrok-free.dev").replace(/\/+$/, "");
+import { CheckCircle2, X } from "lucide-react";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://api.codingboss.in/military/").replace(/\/+$/, "");
 
 // --------------------------------------------------
 // Permanent Device ID Function (Keep This)
@@ -14,11 +15,11 @@ const getDeviceId = (): string => {
   return id;
 };
 
-import { supabase } from "../lib/supabase";
 
 const Auth: React.FC = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -32,72 +33,15 @@ const Auth: React.FC = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // --------------------------------------------------
-  // GOOGLE LOGIN
-  // --------------------------------------------------
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error("Google Login error:", error);
-      alert("Google Login failed.");
-    }
-  };
-
-  // --------------------------------------------------
-  // REGISTER API CALL
-  // --------------------------------------------------
-  const handleRegister = async () => {
-    if (!form.username || !form.mobile || !form.email || !form.password) {
-      alert("Please fill all fields");
-      return;
-    }
-
-    const payload = {
-      username: form.username,
-      mobile: form.mobile,
-      email: form.email,
-      password: form.password,
-      device_id: getDeviceId(),
-    };
-
-    try {
-      const response = await fetch(`${API_BASE}/manpower/signup/`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true"
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        localStorage.setItem("userLoggedIn", "true");
-        localStorage.setItem("userEmail", form.email);
-        alert("✅ Registration Successful!");
-        setIsLogin(true);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(`Registration failed: ${errorData.message || errorData.detail || "Unknown error"}`);
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-      alert("Registration failed due to network error.");
-    }
-  };
 
   // --------------------------------------------------
   // LOGIN API CALL
   // --------------------------------------------------
   const handleLogin = async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
     if (!form.email || !form.password) {
-      alert("Please enter email & password");
+      setErrorMessage("Please enter email & password");
       return;
     }
 
@@ -120,7 +64,7 @@ const Auth: React.FC = () => {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/manpower/owners/login/`, {
+      const response = await fetch(`${API_BASE}/login/`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -130,17 +74,28 @@ const Auth: React.FC = () => {
       });
 
       if (response.ok) {
+        const data = await response.json().catch(() => ({}));
+        
+        // The backend returns 200 OK even for errors, so we must check the payload
+        if (data.error) {
+          setErrorMessage(`Login failed: ${data.error}`);
+          return;
+        }
+
         localStorage.setItem("userLoggedIn", "true");
         localStorage.setItem("userEmail", form.email);
-        alert("✅ User Login Successful!");
-        navigate("/");
+        setSuccessMessage("✅ User Login Successful!");
+        setTimeout(() => {
+          setSuccessMessage("");
+          navigate("/");
+        }, 1500); // Wait slightly so user sees the message before redirect
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(`Login failed: ${errorData.message || errorData.detail || "Invalid credentials"}`);
+        setErrorMessage(`Login failed: ${errorData.message || errorData.detail || "Invalid credentials"}`);
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("Login failed due to network error.");
+      setErrorMessage("Login failed due to network error.");
     }
   };
 
@@ -160,36 +115,35 @@ const Auth: React.FC = () => {
       </div>
 
       {/* RIGHT SIDE FORM */}
-      <div className="w-full lg:w-2/5 bg-white flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12">
+      <div className="w-full lg:w-2/5 bg-white flex flex-col items-center justify-center p-6 sm:p-8 lg:p-12 relative">
         <div className="w-full max-w-md">
 
+          {/* Notifications */}
+          {successMessage && (
+            <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-3 shadow-lg shadow-emerald-500/10 animate-fade-in">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <span className="font-bold text-sm">{successMessage}</span>
+              <button onClick={() => setSuccessMessage("")} className="ml-auto text-emerald-400 hover:text-emerald-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl flex items-center gap-3 shadow-lg shadow-rose-500/10 animate-fade-in">
+              <X className="w-5 h-5 text-rose-500 bg-rose-100 rounded-full p-0.5" />
+              <span className="font-bold text-sm">{errorMessage}</span>
+              <button onClick={() => setErrorMessage("")} className="ml-auto text-rose-400 hover:text-rose-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           <h2 className="text-3xl font-bold mb-8 text-gray-900">
-            {isLogin ? "Welcome Back" : "Create Account"}
+            Welcome Back
           </h2>
 
           <div className="space-y-5">
-            {/* Show extra fields only for Registration */}
-            {!isLogin && (
-              <>
-                <input
-                  name="username"
-                  value={form.username}
-                  onChange={handleChange}
-                  type="text"
-                  placeholder="Username"
-                  className="w-full border-b-2 border-gray-300 focus:border-purple-500 outline-none py-2"
-                />
-
-                <input
-                  name="mobile"
-                  value={form.mobile}
-                  onChange={handleChange}
-                  type="text"
-                  placeholder="Mobile Number"
-                  className="w-full border-b-2 border-gray-300 focus:border-purple-500 outline-none py-2"
-                />
-              </>
-            )}
 
             <input
               name="email"
@@ -221,34 +175,10 @@ const Auth: React.FC = () => {
 
           <div className="flex flex-col gap-4 mt-8">
             <button
-              onClick={isLogin ? handleLogin : handleRegister}
+              onClick={handleLogin}
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-full font-semibold shadow-md shadow-purple-500/30"
             >
-              {isLogin ? "Sign In" : "Sign Up"}
-            </button>
-
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-300"></span>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
-
-            <button
-              onClick={handleGoogleLogin}
-              className="flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 rounded-full font-semibold hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-              Sign in with Google
-            </button>
-
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-purple-600 font-medium hover:underline text-center"
-            >
-              {isLogin ? "Don't have an account? Create one" : "Already have an account? Login"}
+              Sign In
             </button>
           </div>
         </div>

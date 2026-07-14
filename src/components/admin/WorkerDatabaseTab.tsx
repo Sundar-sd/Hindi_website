@@ -1,10 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Users, Search, Edit, FileDown, Share2, X, Loader2 } from 'lucide-react';
+import { Plus, Users, Search, Edit, FileDown, Share2, X, Loader2, Trash2 } from 'lucide-react';
 import { generateWorkerProfilePDF } from '../../lib/pdfReportGenerator';
 import { WorkerProfile, WorkerCategory, Site } from '../../types';
 import { apiService } from '../../lib/api';
 
-const IMAGE_API_BASE = "/api-proxy";
+const getApiOrigin = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && envUrl.startsWith("http")) {
+    try {
+      return new URL(envUrl).origin;
+    } catch {
+      // fallback
+    }
+  }
+  return "/api-proxy";
+};
+const IMAGE_API_BASE = getApiOrigin();
 
 /**
  * Loads images from backend URLs by sending the required
@@ -137,6 +148,7 @@ const WorkerDatabaseTab: React.FC = () => {
       const defaultSelectedWage = formData.selectedWage || 500;
 
       const backendPayload = {
+        ...formData,
         siteId: defaultSiteId,
         name: formData.fullname,
         category: formData.category?.toLowerCase() || "helper",
@@ -409,15 +421,27 @@ const WorkerDatabaseTab: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-[9px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded">{w.workerid}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleStatus(w);
-                      }}
-                      className={`flex gap-1 items-center px-2 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${w.active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'}`}
-                    >
-                      {w.active ? 'Active' : 'Inactive'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleStatus(w);
+                        }}
+                        className={`flex gap-1 items-center px-2 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${w.active ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'}`}
+                      >
+                        {w.active ? 'Active' : 'Inactive'}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(w.id);
+                        }}
+                        className="flex items-center justify-center p-1 rounded-md text-rose-400 hover:text-white hover:bg-rose-500 transition-all border border-rose-100 dark:border-rose-500/20 shadow-sm"
+                        title="Delete Worker"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                   <h3 className="text-base font-bold text-slate-800 dark:text-white capitalize truncate">{w.fullname}</h3>
                   <div className="flex justify-between items-center text-[11px] mt-1 font-semibold">
@@ -892,7 +916,11 @@ const WorkerDatabaseTab: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-1">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Worker ID</label>
+                      <input type="text" className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 dark:text-white transition-all outline-none shadow-sm" value={formData.workerid || ''} onChange={e => setFormData({ ...formData, workerid: e.target.value })} placeholder="Auto-generated if empty" />
+                    </div>
+                    <div className="col-span-1">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Full Name *</label>
                       <input required type="text" className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 dark:text-white transition-all outline-none shadow-sm" value={formData.fullname || ''} onChange={e => setFormData({ ...formData, fullname: e.target.value })} placeholder="e.g. Ramesh Kumar" />
                     </div>

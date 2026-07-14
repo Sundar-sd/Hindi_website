@@ -1,37 +1,14 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import { User } from "@supabase/supabase-js";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-
-    // Check initial session
-    try {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setSupabaseUser(session?.user ?? null);
-      }).catch(err => console.warn('Supabase session check failed:', err));
-    } catch (err) {
-      console.warn('Supabase initialization failed:', err);
-    }
-
-    // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSupabaseUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   // --- Live Class Check ---
   const isAdmin = localStorage.getItem('admin') === 'true';
-  const isLoggedIn = isAdmin || localStorage.getItem('userLoggedIn') === 'true' || !!supabaseUser;
+  const isLoggedIn = isAdmin || localStorage.getItem('userLoggedIn') === 'true';
   const isLiveActive = localStorage.getItem('isLiveActive') === 'true';
 
   const isActive = (path: string) => location.pathname === path;
@@ -118,11 +95,19 @@ export default function Header() {
               </Link>
               {isLoggedIn && (
                 <Link
+                  to="/live-class"
+                  className={`${isActive("/live-class") ? "text-purple-300" : "hover:text-purple-300"} transition-colors font-medium flex items-center gap-2`}
+                >
+                  Live Class
+                </Link>
+              )}
+              {isLoggedIn && (
+                <Link
                   to={isLiveActive ? "#" : "/courses"}
                   onClick={(e) => {
                     if (isLiveActive) {
                       e.preventDefault();
-                      window.open('https://api.codingboss.in/live/', '_blank');
+                      window.open('https://api.codingboss.in/live', '_blank');
                     }
                   }}
                   className={`${isActive("/live") ? "text-purple-300" : "hover:text-purple-300"} transition-colors font-medium flex items-center gap-2`}
@@ -155,9 +140,14 @@ export default function Header() {
                 </>
               ) : (
                 <div className="flex items-center gap-4">
-                  <span className="text-white font-medium bg-purple-800/50 px-3 py-1 rounded-full border border-purple-500/30">
-                    Hi, {isAdmin ? "Admin" : localStorage.getItem('userEmail')?.split('@')[0]}
-                  </span>
+                  {isAdmin && (
+                    <Link to="/admin-dashboard">
+                      <button className="text-white bg-indigo-600 hover:bg-indigo-500 transition-colors font-medium border border-indigo-500 px-4 py-1.5 rounded-full hover:shadow-lg">
+                        Admin Panel
+                      </button>
+                    </Link>
+                  )}
+
                   <button
                     onClick={() => {
                       localStorage.removeItem('userLoggedIn');
@@ -230,12 +220,21 @@ export default function Header() {
                 </Link>
                 {isLoggedIn && (
                   <Link
+                    to="/live-class"
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`${isActive("/live-class") ? "text-purple-300" : "hover:text-purple-300"} py-2 flex items-center gap-2`}
+                  >
+                    Live Class
+                  </Link>
+                )}
+                {isLoggedIn && (
+                  <Link
                     to={isLiveActive ? "#" : "/courses"}
                     onClick={(e) => {
                       setIsMenuOpen(false);
                       if (isLiveActive) {
                         e.preventDefault();
-                        window.open('https://api.codingboss.in/live/', '_blank');
+                        window.open('https://api.codingboss.in/live', '_blank');
                       }
                     }}
                     className={`${isActive("/live") ? "text-purple-300" : "hover:text-purple-300"} py-2 flex items-center gap-2`}

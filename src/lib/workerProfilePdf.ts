@@ -2,7 +2,18 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { WorkerProfile } from "../types";
 
-const NGROK_BASE = "https://copious-frill-parrot.ngrok-free.dev";
+const getApiOrigin = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && envUrl.startsWith("http")) {
+    try {
+      return new URL(envUrl).origin;
+    } catch {
+      // fallback
+    }
+  }
+  return "https://api.codingboss.in";
+};
+const NGROK_BASE = getApiOrigin();
 
 /**
  * Generates a professional PDF document for a worker profile.

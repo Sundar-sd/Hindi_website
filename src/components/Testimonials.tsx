@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Star, Quote, Send, Loader2 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { Star, Quote, Loader2 } from 'lucide-react';
 
 interface Testimonial {
   id?: string;
@@ -15,46 +14,9 @@ export default function Testimonials() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [averageRating] = useState('4.8');
-  const [reviewCount, setReviewCount] = useState('50,000+');
-
-  // Review form state
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [newReview, setNewReview] = useState({ text: '', rating: 5 });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewCount] = useState('50,000+');
 
   useEffect(() => {
-    fetchTestimonials();
-
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
-
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsLoggedIn(!!session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
-      setUser(session?.user ?? null);
-    } catch (err) {
-      console.warn('Supabase session check failed:', err);
-    }
-  };
-
-  const fetchTestimonials = async () => {
-    setLoading(true);
     // Shared static testimonials fallback
     const staticTestimonials = [
       {
@@ -128,62 +90,9 @@ export default function Testimonials() {
         rating: 5
       }
     ];
-
-    try {
-      if (!isSupabaseConfigured) {
-        setTestimonials(staticTestimonials);
-        return;
-      }
-
-      const { data, error, count } = await supabase
-        .from('testimonials')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setTestimonials(data && data.length > 0 ? [...data, ...staticTestimonials] : staticTestimonials);
-      if (count) setReviewCount((count + 50000).toLocaleString() + '+');
-    } catch (error) {
-      console.error('Error fetching testimonials:', error);
-      setTestimonials(staticTestimonials);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isLoggedIn || !user) {
-      alert('Please log in with Google to leave a review.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.from('testimonials').insert([
-        {
-          name: user.user_metadata.full_name || user.email,
-          role: 'Student',
-          image: user.user_metadata.avatar_url || '',
-          text: newReview.text,
-          rating: newReview.rating,
-          user_id: user.id
-        }
-      ]);
-
-      if (error) throw error;
-
-      alert('Thank you for your review!');
-      setNewReview({ text: '', rating: 5 });
-      fetchTestimonials();
-    } catch (error) {
-      console.error('Error submitting review:', error);
-      alert('Failed to submit review. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    setTestimonials(staticTestimonials);
+    setLoading(false);
+  }, []);
 
   // --- Scrolling Logic ---
   const firstRow = testimonials.slice(0, Math.ceil(testimonials.length / 2));
@@ -255,40 +164,6 @@ export default function Testimonials() {
         <div className="text-center" id="testimonials">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Student Testimonials</h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">Reviews from students of Raanuva Veeran Spoken Hindi Academy</p>
-        </div>
-      </div>
-
-      {/* Review Submission Form */}
-      <div className="max-w-2xl mx-auto mb-20 px-4">
-        <div className="bg-white rounded-3xl p-8 shadow-2xl border border-orange-100">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Share Your Experience</h3>
-          {!isLoggedIn ? (
-            <div className="text-center py-6">
-              <p className="text-gray-600 mb-6">Please log in with Google to share your experience.</p>
-              <a href="/auth" className="inline-flex bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-full font-bold hover:shadow-lg transition-all">Log in to Comment</a>
-            </div>
-          ) : (
-            <form onSubmit={handleReviewSubmit} className="space-y-6">
-              <div className="flex items-center gap-4 mb-4">
-                <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-12 h-12 rounded-full border-2 border-orange-200" />
-                <div><p className="font-bold text-gray-900">{user.user_metadata.full_name}</p><p className="text-sm text-gray-500">Posting as Student</p></div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Rating</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button key={star} type="button" onClick={() => setNewReview({ ...newReview, rating: star })} className="focus:outline-none transition-transform hover:scale-110">
-                      <Star className={`w-8 h-8 ${star <= newReview.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <textarea required value={newReview.text} onChange={(e) => setNewReview({ ...newReview, text: e.target.value })} placeholder="Tell us what you think..." className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none h-32 resize-none transition-all" />
-              <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:shadow-xl transition-all disabled:opacity-50">
-                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} Submit Review
-              </button>
-            </form>
-          )}
         </div>
       </div>
 

@@ -2,7 +2,9 @@ import {
   Engineer, Site, Worker, Advance
 } from "../types";
 
-const API_BASE = "/api-manpower";
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
+  : "/api-manpower";
 
 export const MANPOWER_ENDPOINTS = {
   engineers: `${API_BASE}/owners/`,
@@ -135,55 +137,119 @@ export const apiService = {
     } catch { return []; }
   },
 
-  createWorker: async (data: Partial<Worker>): Promise<Worker> => {
+  createWorker: async (data: any): Promise<any> => {
+    const payload = {
+      site: Number(data.siteId || 1),
+      name: data.name || data.fullname,
+      workername: data.name || data.fullname,
+      worker_id: data.workerid,
+      category: data.category,
+      new_amount: data.selectedWage,
+      daily_wage: data.selectedWage,
+      phone: data.mobile || data.phone || "0000000000",
+      aadhaar_number: data.aadhar,
+      pan_number: data.pan_num,
+      photo: data.profileImage,
+      village_locality: data.village,
+      district: data.district,
+      state: data.state,
+      join_date: data.date_of_joining,
+      relieving_date: data.date_of_relieving,
+      is_active: data.active !== false,
+      blood_group: data.bloodgroup,
+      marital_status: data.marital_sts,
+      parent_guardian_name: data.parent_name,
+      parent_mobile: data.parentmob_num,
+      nominee_name: data.nominee_name,
+      nominee_mobile: data.nominee_phone,
+      children_details: data.children_details,
+      referred_by_name: data.referred_by,
+      referrer_mobile: data.referral_phno,
+      insurance_enrolled: data.insurance_status === 'Yes',
+      premium_amount: Number(data.profile_premium || 0),
+      life_insured_amount: Number(data.life_insured_amount || 0),
+      medical_insured_amount: Number(data.medical_insured_amount || 0),
+      policy_number: data.policy_num,
+      policy_date: data.insurance_date,
+      policy_duration: data.policy_duration,
+      insurance_company: data.insurancecompany,
+      insurance_source: data.insurance_source
+    };
+
     const res = await apiFetch(MANPOWER_ENDPOINTS.workers, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        site: Number(data.siteId),
-        name: data.name,
-        workername: data.name,
-        category: data.category,
-        new_amount: data.selectedWage,
-        phone: data.mobile || data.phone || "0000000000"
-      })
+      body: JSON.stringify(payload)
     });
     const d = await res.json();
     return {
+      ...d,
       id: String(d.id),
       siteId: String(d.site),
       name: d.workername || d.name,
       category: d.category,
-      selectedWage: Number(d.new_amount || d.wage || 0),
+      selectedWage: Number(d.new_amount || d.wage || d.selected_wage || 0),
       mobile: d.phone,
       phone: d.phone,
-      isActive: true
+      isActive: d.is_active !== false
     };
   },
 
-  updateWorker: async (id: string, data: Partial<Worker>): Promise<Worker> => {
+  updateWorker: async (id: string, data: any): Promise<any> => {
+    const payload = {
+      site: Number(data.siteId || 1),
+      name: data.name || data.fullname,
+      workername: data.name || data.fullname,
+      worker_id: data.workerid,
+      category: data.category,
+      new_amount: data.selectedWage,
+      daily_wage: data.selectedWage,
+      phone: data.mobile || data.phone || "0000000000",
+      aadhaar_number: data.aadhar,
+      pan_number: data.pan_num,
+      photo: data.profileImage,
+      village_locality: data.village,
+      district: data.district,
+      state: data.state,
+      join_date: data.date_of_joining,
+      relieving_date: data.date_of_relieving,
+      is_active: data.active !== false,
+      blood_group: data.bloodgroup,
+      marital_status: data.marital_sts,
+      parent_guardian_name: data.parent_name,
+      parent_mobile: data.parentmob_num,
+      nominee_name: data.nominee_name,
+      nominee_mobile: data.nominee_phone,
+      children_details: data.children_details,
+      referred_by_name: data.referred_by,
+      referrer_mobile: data.referral_phno,
+      insurance_enrolled: data.insurance_status === 'Yes',
+      premium_amount: Number(data.profile_premium || 0),
+      life_insured_amount: Number(data.life_insured_amount || 0),
+      medical_insured_amount: Number(data.medical_insured_amount || 0),
+      policy_number: data.policy_num,
+      policy_date: data.insurance_date,
+      policy_duration: data.policy_duration,
+      insurance_company: data.insurancecompany,
+      insurance_source: data.insurance_source
+    };
+
     const res = await apiFetch(`${MANPOWER_ENDPOINTS.workers}${id}/`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        site: Number(data.siteId),
-        name: data.name,
-        workername: data.name,
-        category: data.category,
-        new_amount: data.selectedWage,
-        phone: data.mobile || data.phone || "0000000000"
-      })
+      body: JSON.stringify(payload)
     });
     const d = await res.json();
     return {
+      ...d,
       id: String(d.id),
       siteId: String(d.site),
       name: d.workername || d.name,
       category: d.category,
-      selectedWage: Number(d.new_amount || d.wage || 0),
+      selectedWage: Number(d.new_amount || d.wage || d.selected_wage || 0),
       mobile: d.phone,
       phone: d.phone,
-      isActive: true
+      isActive: d.is_active !== false
     };
   },
 

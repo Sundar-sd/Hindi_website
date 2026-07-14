@@ -18,13 +18,18 @@ import {
 import axios from "axios";
 import { generateProfessionalPDF, shareToWhatsApp } from "../../lib/pdfReportGenerator";
 import { apiService } from "../../lib/api";
+import ActiveWorkforceSummary from "./ActiveWorkforceSummary";
 
 // Proxied Base URL
-const API_BASE = '/api-manpower';
+const API_BASE = import.meta.env.VITE_API_BASE_URL 
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
+  : '/api-manpower';
 
 const CreateEngineerTab: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [workforceAssignments, setWorkforceAssignments] = useState<any[]>([]);
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSite, setSelectedSite] = useState<string>("All");
 
@@ -72,8 +77,58 @@ const CreateEngineerTab: React.FC = () => {
     }
   };
 
+  const fetchWorkers = async () => {
+    let backendWorkers: any[] = [];
+    try {
+      const res = await axios.get(`${API_BASE}/worker-profiles/`, {
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      if (res.data && Array.isArray(res.data)) {
+        backendWorkers = res.data;
+      } else if (res.data?.results) {
+        backendWorkers = res.data.results;
+      }
+    } catch (err) {
+      console.error("Error fetching worker profiles, trying fallback:", err);
+      try {
+        const res = await axios.get(`${API_BASE}/workers/`, {
+          headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        backendWorkers = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+      } catch (e) {
+        console.error("Error fetching workers:", e);
+      }
+    }
+
+    try {
+      const savedProfilesRaw = localStorage.getItem('worker_db');
+      if (savedProfilesRaw) {
+        const savedProfiles = JSON.parse(savedProfilesRaw);
+        if (Array.isArray(savedProfiles)) {
+          // Add local profiles first so they take precedence for matching
+          backendWorkers = [...savedProfiles, ...backendWorkers];
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing local worker_db", e);
+    }
+
+    setWorkers(backendWorkers);
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const cats = await apiService.getWorkerCategories();
+      setCategories(cats);
+    } catch (e) {
+      console.error("Error fetching categories", e);
+    }
+  };
+
   useEffect(() => {
     fetchAssignments();
+    fetchWorkers();
+    fetchCategories();
   }, []);
 
   const handleDelete = async (id: any) => {
@@ -90,10 +145,50 @@ const CreateEngineerTab: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Auto-fetch labour details when labourId is entered
+      if (name === 'labourId' && value.trim() !== '') {
+        const match = workers.find(w => 
+          String(w.id) === value.trim() || 
+          String(w.workerid) === value.trim() || 
+          String(w.worker_id) === value.trim()
+        );
+        
+        if (match) {
+          const nameToSet = match.fullname || match.workername || match.name;
+          if (nameToSet) newData.labourName = nameToSet;
+          
+          let resolvedCat = "";
+          
+          if (match.category_name) {
+            resolvedCat = String(match.category_name);
+          } else if (match.category) {
+            const catStr = String(match.category);
+            const foundCat = categories.find(c => String(c.id) === catStr);
+            if (foundCat) {
+              resolvedCat = foundCat.name;
+            } else if (!catStr.includes('-') && isNaN(Number(catStr))) {
+              resolvedCat = catStr;
+            }
+          }
+          
+          if (match.category_name || match.category) {
+            if (resolvedCat) {
+              const allowedTypes = ["Mason", "Helper", "Electrician", "Plumber", "Other"];
+              const exactMatch = allowedTypes.find(t => t.toLowerCase() === resolvedCat.trim().toLowerCase());
+              newData.labourType = exactMatch || "Other";
+            } else {
+              newData.labourType = "Other";
+            }
+          }
+        }
+      }
+      
+      return newData;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -253,6 +348,7 @@ const CreateEngineerTab: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in">
+      <ActiveWorkforceSummary />
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-slate-800 pb-6 mb-8">
         <div>

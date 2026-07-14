@@ -22,3 +22,7 @@ dist-ssr
 *.sw?
 .env
 .vercel
+dist.zip
+temp_old_liveclass.tsx
+worker_profiles.json
+workers_full.json

@@ -25,9 +25,12 @@ import {
 import axios from "axios";
 import { apiService } from "../../lib/api";
 import { generateProfessionalPDF, shareToWhatsApp } from "../../lib/pdfReportGenerator";
+import ActiveWorkforceSummary from "./ActiveWorkforceSummary";
 
 // API Base for proxied requests
-const API_BASE = '/api-manpower';
+const API_BASE = import.meta.env.VITE_API_BASE_URL 
+  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
+  : '/api-manpower';
 
 interface DutyRecord {
   labourId: string;
@@ -469,6 +472,7 @@ const PayOutTab: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto animate-fade-in space-y-10 pb-20">
+      <ActiveWorkforceSummary />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 dark:border-slate-800 pb-6">
         <div className="flex items-center gap-6">

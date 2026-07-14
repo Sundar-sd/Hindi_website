@@ -4,7 +4,9 @@ import ManpowerSection from "../components/admin/ManpowerSection";
 import PremiumBackground from "../components/admin/PremiumBackground";
 import WorkerDatabaseTab from "../components/admin/WorkerDatabaseTab";
 import LiveClassTab from "../components/admin/LiveClassTab";
-import { LogOut, Layout, Play, Briefcase, Settings, Bell, Plus, Users } from "lucide-react";
+import RecordedClassTab from "../components/admin/RecordedClassTab";
+import UserManagementTab from "../components/admin/UserManagementTab";
+import { LogOut, Layout, Play, Briefcase, Settings, Bell, Plus, Users, Video, Globe, UserPlus } from "lucide-react";
 
 // ─── Interfaces ───
 interface Course {
@@ -33,8 +35,8 @@ const AdminDashboard: React.FC = () => {
 
   // Sync tab with URL
   const queryParams = new URLSearchParams(location.search);
-  const currentTab = queryParams.get("tab") as "courses" | "manpower" | "live" | "workerDatabase" || "courses";
-  const [activeTab, setActiveTab] = useState<"courses" | "manpower" | "live" | "workerDatabase">(currentTab);
+  const currentTab = queryParams.get("tab") as "courses" | "manpower" | "live" | "workerDatabase" | "recordedClasses" | "userManagement" || "courses";
+  const [activeTab, setActiveTab] = useState<"courses" | "manpower" | "live" | "workerDatabase" | "recordedClasses" | "userManagement">(currentTab);
 
   const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [showCourseForm, setShowCourseForm] = useState(false);
@@ -45,7 +47,7 @@ const AdminDashboard: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const tab = queryParams.get("tab") as "courses" | "manpower" | "live" | "workerDatabase";
+    const tab = queryParams.get("tab") as "courses" | "manpower" | "live" | "workerDatabase" | "recordedClasses" | "userManagement";
     if (tab) setActiveTab(tab);
   }, [location.search]);
 
@@ -80,6 +82,8 @@ const AdminDashboard: React.FC = () => {
             { id: "manpower", label: "Manpower Services", icon: Briefcase },
             { id: "workerDatabase", label: "Worker Database", icon: Users },
             { id: "live", label: "Live Broadcast", icon: Play },
+            { id: "recordedClasses", label: "Recorded Classes", icon: Video },
+            { id: "userManagement", label: "User Management", icon: UserPlus },
           ].map((item) => (
             <button
               key={item.id}
@@ -94,7 +98,17 @@ const AdminDashboard: React.FC = () => {
           ))}
         </nav>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+        <div className="p-6 border-t border-slate-100 bg-slate-50/50 space-y-2">
+          <button
+            onClick={() => navigate("/")}
+            className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-indigo-600 hover:bg-indigo-50 transition-colors duration-200 font-bold text-xs uppercase tracking-wider group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors duration-200">
+              <Globe className="w-4 h-4" />
+            </div>
+            View Frontend
+          </button>
+          
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-rose-500 hover:bg-rose-50 transition-colors duration-200 font-bold text-xs uppercase tracking-wider group"
@@ -154,6 +168,8 @@ const AdminDashboard: React.FC = () => {
           {activeTab === "manpower" && <ManpowerSection />}
           {activeTab === "workerDatabase" && <WorkerDatabaseTab />}
           {activeTab === "live" && <LiveClassTab />}
+          {activeTab === "recordedClasses" && <RecordedClassTab />}
+          {activeTab === "userManagement" && <UserManagementTab />}
         </div>
       </div>
     </div>

@@ -134,3 +134,15 @@ export interface WorkerCategory {
   id: string;
   name: string;
 }
+
+export interface LiveClass {
+  id: string;
+  title: string;
+  description?: string;
+  video_url: string;
+  scheduled_time: string;
+  duration_minutes?: number;
+  status: 'scheduled' | 'completed' | 'UPCOMING' | 'EXPIRED';
+  thumbnail_url?: string;
+  created_at: string;
+}

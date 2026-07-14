@@ -3,14 +3,14 @@ import { Play, Square, Video, Link, Radio, Users, Settings, Bell, ExternalLink }
 
 const LiveClassTab: React.FC = () => {
   const [isLiveActive, setIsLiveActive] = useState<boolean>(localStorage.getItem('isLiveActive') === 'true');
-  const [meetingLink, setMeetingLink] = useState<string>(localStorage.getItem('liveMeetingLink') || 'https://api.codingboss.in/live/');
+  const [meetingLink, setMeetingLink] = useState<string>(localStorage.getItem('liveMeetingLink') || 'https://api.codingboss.in/live');
   const [statusMessage, setStatusMessage] = useState<string>("");
 
   useEffect(() => {
     // Listen for changes in localStorage from other tabs
     const handleStorageChange = () => {
       setIsLiveActive(localStorage.getItem('isLiveActive') === 'true');
-      setMeetingLink(localStorage.getItem('liveMeetingLink') || 'https://api.codingboss.in/live/');
+      setMeetingLink(localStorage.getItem('liveMeetingLink') || 'https://api.codingboss.in/live');
     };
 
     window.addEventListener('storage', handleStorageChange);
