@@ -191,7 +191,7 @@ export default function LiveClassPage() {
               </h2>
               {nowPlaying.length > 0 ? (
                 nowPlaying.map((cls) => (
-                  <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden mb-6 isolation-isolate z-0 transform-gpu">
+                  <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 shadow-lg mb-6">
                     {activeClassId === cls.id ? (
                       <div className="flex flex-col">
                         {videoFetchError ? (
@@ -209,7 +209,7 @@ export default function LiveClassPage() {
                               const driveIframeUrl = getGoogleDriveIframeUrl(videoUrl);
                               if (driveIframeUrl) {
                                 return (
-                                  <div className="aspect-video w-full overflow-hidden bg-black relative group isolation-isolate z-0 transform-gpu rounded-t-2xl">
+                                  <div className="aspect-video w-full bg-black relative group z-0 rounded-t-3xl" style={{ clipPath: 'inset(0 0 0 0 round 1.5rem 1.5rem 0 0)' }}>
                                     <iframe 
                                       src={driveIframeUrl} 
                                       className="absolute left-0 w-full border-0 z-0" 
