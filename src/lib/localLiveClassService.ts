@@ -222,7 +222,7 @@ export const localLiveClassService = {
     }
   },
 
-  revokeVideoUrl: (url: string): void => {
+  revokeVideoUrl: (): void => {
     // No longer needed since we use real URLs instead of blob URLs
   },
 

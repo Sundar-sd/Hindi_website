@@ -9,6 +9,7 @@ function getCountdown(target: string): { hours: number; minutes: number; seconds
   if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0, totalMs: 0 };
   return {
     hours: Math.floor(diff / 3600000),
+
     minutes: Math.floor((diff % 3600000) / 60000),
     seconds: Math.floor((diff % 60000) / 1000),
     totalMs: diff,
@@ -37,13 +38,13 @@ function getGoogleDriveIframeUrl(url: string): string | null {
   // Match standard viewing link
   let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
-  
+
   // Match our optimized download link
   match = url.match(/id=([a-zA-Z0-9_-]+)/);
   if (match && url.includes("drive.google.com")) {
-     return `https://drive.google.com/file/d/${match[1]}/preview`;
+    return `https://drive.google.com/file/d/${match[1]}/preview`;
   }
-  
+
   return null;
 }
 
@@ -81,18 +82,18 @@ export default function LiveClassPage() {
   useEffect(() => {
     const evaluateClasses = () => {
       const now = Date.now();
-      
+
       const playing = allClasses.filter((c) => {
         const start = new Date(c.scheduled_time || 0).getTime();
         const duration = Math.max((c.duration_minutes || 30) * 60000, 3600000); // Minimum 1 hour window
         return start <= now && now <= start + duration;
       });
-      
+
       const upcoming = allClasses.filter((c) => {
         const start = new Date(c.scheduled_time || 0).getTime();
         return start > now;
       });
-      
+
       setNowPlaying(playing);
       setUpcomingClasses(upcoming);
     };
@@ -118,11 +119,11 @@ export default function LiveClassPage() {
         } else {
           // Revoke previous URL if any (not heavily used anymore but kept for safety)
           if (videoUrlRef.current) {
-            localLiveClassService.revokeVideoUrl(videoUrlRef.current);
+            localLiveClassService.revokeVideoUrl();
           }
           videoUrlRef.current = url;
           setVideoUrl(url);
-          
+
           // Log attendance
           const userEmail = localStorage.getItem('userEmail') || 'anonymous@student.com';
           localLiveClassService.viewerJoin(activeClassId, userEmail);
@@ -138,12 +139,12 @@ export default function LiveClassPage() {
   useEffect(() => {
     return () => {
       if (videoUrlRef.current) {
-        localLiveClassService.revokeVideoUrl(videoUrlRef.current);
+        localLiveClassService.revokeVideoUrl();
       }
     };
   }, []);
 
-  const handleVideoEnded = useCallback(async (cls: LiveClass) => {
+  const handleVideoEnded = useCallback(() => {
     // We no longer expire the class when the video ends early.
     // The video will just pause at the end, and the student can re-watch it until the 1hr window expires.
   }, []);
@@ -210,9 +211,9 @@ export default function LiveClassPage() {
                               if (driveIframeUrl) {
                                 return (
                                   <div className="aspect-video w-full bg-black relative group z-0 rounded-t-3xl" style={{ clipPath: 'inset(0 0 0 0 round 1.5rem 1.5rem 0 0)' }}>
-                                    <iframe 
-                                      src={driveIframeUrl} 
-                                      className="absolute left-0 w-full border-0 z-0" 
+                                    <iframe
+                                      src={driveIframeUrl}
+                                      className="absolute left-0 w-full border-0 z-0"
                                       style={{ top: '-56px', height: 'calc(100% + 56px)' }}
                                       allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                                     ></iframe>
@@ -228,14 +229,14 @@ export default function LiveClassPage() {
                               }
                               return (
                                 <LockableVideoPlayer
-                                  src={videoUrl}
-                                  poster={cls.thumbnail_url}
-                                  autoPlay={true}
-                                  startTime={activeStartTime}
-                                  endTimestamp={activeEndTimestamp}
-                                  onEnded={() => handleVideoEnded(cls)}
-                                  onClassEnded={() => handleClassTimeExpired(cls)}
-                                />
+                                    src={videoUrl}
+                                    poster={cls.thumbnail_url}
+                                    autoPlay={true}
+                                    startTime={activeStartTime}
+                                    endTimestamp={activeEndTimestamp}
+                                    onEnded={handleVideoEnded}
+                                    onClassEnded={() => handleClassTimeExpired(cls)}
+                                  />
                               );
                             })()}
                             <div className="px-6 pb-6 pt-4">
@@ -274,7 +275,7 @@ export default function LiveClassPage() {
                           onClick={() => {
                             const start = new Date(cls.scheduled_time).getTime();
                             const durationMs = (cls.duration_minutes || 30) * 60000;
-                            const totalWindowMs = Math.max(durationMs, 3600000); 
+                            const totalWindowMs = Math.max(durationMs, 3600000);
                             const endTs = start + totalWindowMs;
                             if (Date.now() > endTs) return;
                             setActiveStartTime(0);
