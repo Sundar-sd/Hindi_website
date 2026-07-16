@@ -235,7 +235,7 @@ export default function LockableVideoPlayer({
   return (
     <div
       ref={containerRef}
-      className="relative bg-black rounded-2xl overflow-hidden group select-none"
+      className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden group select-none isolation-isolate z-0"
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       tabIndex={0}
@@ -246,7 +246,7 @@ export default function LockableVideoPlayer({
         poster={poster}
         autoPlay={autoPlay}
         playsInline
-        webkit-playsinline="true"
+        controls={false}
         onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
         onSeeking={handleSeeking}
@@ -275,7 +275,7 @@ export default function LockableVideoPlayer({
           console.error("Video Error:", errorMsg, "SRC:", target.src);
           setVideoError(errorMsg);
         }}
-        className="w-full aspect-video object-contain cursor-pointer"
+        className="absolute inset-0 w-full h-full object-contain cursor-pointer z-0"
       />
 
       {/* Error Overlay */}
