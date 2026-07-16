@@ -13,7 +13,7 @@ const getApiOrigin = (): string => {
       // fallback
     }
   }
-  return "http://127.0.0.1:9000";
+  return "https://concise-egomaniac-starved.ngrok-free.dev";
 };
 const IMAGE_API_BASE = getApiOrigin();
 

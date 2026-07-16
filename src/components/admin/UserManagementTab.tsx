@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { UserPlus, Users, Search, Mail, Phone, Key, Plus, X, Loader2, CheckCircle2 } from "lucide-react";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:9000/military").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "https://concise-egomaniac-starved.ngrok-free.dev/military").replace(/\/+$/, "");
 
 export default function UserManagementTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);

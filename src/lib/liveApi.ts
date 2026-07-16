@@ -1,6 +1,6 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
   ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
-  : "http://127.0.0.1:9000/military";
+  : "https://concise-egomaniac-starved.ngrok-free.dev/military";
 const API_BASE = `${BASE_URL}/live`;
 
 export interface LiveEvent {
