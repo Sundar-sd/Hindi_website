@@ -234,7 +234,7 @@ export const localLiveClassService = {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ class_id: classId, user_email: userEmail }),
+        body: JSON.stringify({ live_video: classId, user_id: 1, session_id: userEmail }),
       });
       return response.ok;
     } catch (err) {

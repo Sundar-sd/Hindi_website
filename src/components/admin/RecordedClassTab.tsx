@@ -672,11 +672,11 @@ const RecordedClassTab: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
                           <span className="font-bold text-indigo-700">
-                            {viewer.user_email ? viewer.user_email[0].toUpperCase() : '?'}
+                            {(viewer.user_email || viewer.session_id) ? (viewer.user_email || viewer.session_id)[0].toUpperCase() : '?'}
                           </span>
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800">{viewer.user_email}</p>
+                          <p className="font-bold text-slate-800">{viewer.user_email || viewer.session_id || 'Unknown Viewer'}</p>
                           <p className="text-xs text-slate-400 font-medium mt-0.5">Joined at {new Date(viewer.joined_at || Date.now()).toLocaleTimeString()}</p>
                         </div>
                       </div>
