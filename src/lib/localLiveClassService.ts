@@ -1,6 +1,6 @@
 import { LiveClass } from '../types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://concise-egomaniac-starved.ngrok-free.dev/military').replace(/\/+$/, "");
+const API_BASE_URL = "https://concise-egomaniac-starved.ngrok-free.dev/military";
 
 const mapLiveClass = (item: any): LiveClass => {
   let scheduled_time = item.scheduled_time;

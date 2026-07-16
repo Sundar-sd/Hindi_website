@@ -4,17 +4,7 @@ import { generateWorkerProfilePDF } from '../../lib/pdfReportGenerator';
 import { WorkerProfile, WorkerCategory, Site } from '../../types';
 import { apiService } from '../../lib/api';
 
-const getApiOrigin = (): string => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl && envUrl.startsWith("http")) {
-    try {
-      return new URL(envUrl).origin;
-    } catch {
-      // fallback
-    }
-  }
-  return "https://concise-egomaniac-starved.ngrok-free.dev";
-};
+const getApiOrigin = (): string => { return "https://concise-egomaniac-starved.ngrok-free.dev"; };
 const IMAGE_API_BASE = getApiOrigin();
 
 /**

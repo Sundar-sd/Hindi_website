@@ -2,17 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { WorkerProfile } from "../types";
 
-const getApiOrigin = (): string => {
-  const envUrl = import.meta.env.VITE_API_BASE_URL;
-  if (envUrl && envUrl.startsWith("http")) {
-    try {
-      return new URL(envUrl).origin;
-    } catch {
-      // fallback
-    }
-  }
-  return "https://concise-egomaniac-starved.ngrok-free.dev";
-};
+const getApiOrigin = (): string => { return "https://concise-egomaniac-starved.ngrok-free.dev"; };
 const NGROK_BASE = getApiOrigin();
 
 /**

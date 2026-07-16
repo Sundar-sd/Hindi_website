@@ -1,6 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
-  : "https://concise-egomaniac-starved.ngrok-free.dev/military";
+const BASE_URL = "https://concise-egomaniac-starved.ngrok-free.dev/military";
 const API_BASE = `${BASE_URL}/live`;
 
 export interface LiveEvent {

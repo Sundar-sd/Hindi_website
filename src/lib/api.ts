@@ -2,9 +2,7 @@ import {
   Engineer, Site, Worker, Advance
 } from "../types";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL
-  ? import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")
-  : "https://concise-egomaniac-starved.ngrok-free.dev/military";
+const API_BASE = "https://concise-egomaniac-starved.ngrok-free.dev/military";
 
 export const MANPOWER_ENDPOINTS = {
   engineers: `${API_BASE}/owners/`,
