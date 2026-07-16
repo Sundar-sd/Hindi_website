@@ -191,7 +191,7 @@ export default function LiveClassPage() {
               </h2>
               {nowPlaying.length > 0 ? (
                 nowPlaying.map((cls) => (
-                  <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden mb-6">
+                  <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden mb-6 isolation-isolate z-0 transform-gpu">
                     {activeClassId === cls.id ? (
                       <div className="flex flex-col">
                         {videoFetchError ? (
@@ -209,11 +209,11 @@ export default function LiveClassPage() {
                               const driveIframeUrl = getGoogleDriveIframeUrl(videoUrl);
                               if (driveIframeUrl) {
                                 return (
-                                  <div className="aspect-video w-full overflow-hidden bg-black relative group">
+                                  <div className="aspect-video w-full overflow-hidden bg-black relative group isolation-isolate z-0 transform-gpu">
                                     <iframe 
                                       src={driveIframeUrl} 
-                                      className="w-full h-full border-0" 
-                                      allow="autoplay; fullscreen"
+                                      className="absolute inset-0 w-full h-full border-0 z-0" 
+                                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                                     ></iframe>
                                     {/* Cover the entire top header to hide Google Drive title and buttons */}
                                     <div className="absolute top-0 left-0 right-0 h-12 sm:h-14 bg-black z-10 flex items-center justify-end px-4 pointer-events-none" title="Live Stream">
