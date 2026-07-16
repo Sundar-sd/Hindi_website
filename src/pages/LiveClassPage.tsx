@@ -260,8 +260,8 @@ export default function LiveClassPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="p-8 flex items-center justify-between">
-                        <div>
+                      <div className="p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex-1">
                           <h3 className="text-2xl font-bold text-slate-900">{cls.title}</h3>
                           {cls.description && <p className="text-slate-500 mt-1">{cls.description}</p>}
                           <div className="flex items-center gap-4 mt-3 text-sm text-slate-400 font-medium">
@@ -276,13 +276,11 @@ export default function LiveClassPage() {
                             const totalWindowMs = Math.max(durationMs, 3600000); 
                             const endTs = start + totalWindowMs;
                             if (Date.now() > endTs) return;
-                            // Start the video from the beginning so they can watch the whole thing
-                            // regardless of when they joined within the 1-hour window.
                             setActiveStartTime(0);
                             setActiveEndTimestamp(endTs);
                             setActiveClassId(cls.id);
                           }}
-                          className="bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center gap-3"
+                          className="w-full md:w-auto justify-center bg-gradient-to-r from-red-500 to-red-600 text-white px-8 py-4 rounded-2xl font-black text-lg shadow-xl shadow-red-500/20 transition-all active:scale-95 flex items-center gap-3"
                         >
                           <Play className="w-6 h-6 fill-white" />
                           Join Now
@@ -344,9 +342,9 @@ export default function LiveClassPage() {
                   {upcomingClasses.map((cls) => {
                     const countdown = getCountdown(cls.scheduled_time);
                     return (
-                      <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 p-6 flex items-center justify-between">
-                        <div className="flex items-center gap-5">
-                          <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                      <div key={cls.id} className="bg-white rounded-3xl border border-slate-100 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start sm:items-center gap-4 sm:gap-5">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-purple-50 flex items-center justify-center flex-shrink-0 mt-1 sm:mt-0">
                             <Lock className="w-6 h-6 text-purple-600" />
                           </div>
                           <div>
@@ -359,7 +357,7 @@ export default function LiveClassPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left sm:text-right pt-4 sm:pt-0 border-t border-slate-100 sm:border-t-0 w-full sm:w-auto">
                           <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Starts in</p>
                           <p className="text-lg font-black text-slate-900">
                             {countdown.hours > 0 && `${countdown.hours}h `}

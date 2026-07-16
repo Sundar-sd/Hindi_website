@@ -121,8 +121,17 @@ export default function LockableVideoPlayer({
     const video = videoRef.current;
     if (!video || classEnded) return;
     if (video.paused) {
-      video.play();
-      setIsPlaying(true);
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setIsPlaying(true);
+        }).catch((err) => {
+          console.error("Play prevented or failed:", err);
+          setIsPlaying(false);
+        });
+      } else {
+        setIsPlaying(true);
+      }
     } else {
       video.pause();
       setIsPlaying(false);
@@ -237,6 +246,8 @@ export default function LockableVideoPlayer({
         poster={poster}
         autoPlay={autoPlay}
         playsInline
+        webkit-playsinline="true"
+        onClick={togglePlay}
         onTimeUpdate={handleTimeUpdate}
         onSeeking={handleSeeking}
         onLoadedMetadata={() => {
@@ -249,8 +260,12 @@ export default function LockableVideoPlayer({
               videoRef.current.currentTime = initialTime;
             }
             setCurrentTime(initialTime);
-            videoRef.current.play();
-            setIsPlaying(true);
+            const playPromise = videoRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            } else {
+              setIsPlaying(true);
+            }
           }
         }}
         onEnded={handleVideoEnded}
@@ -260,8 +275,7 @@ export default function LockableVideoPlayer({
           console.error("Video Error:", errorMsg, "SRC:", target.src);
           setVideoError(errorMsg);
         }}
-        className="w-full aspect-video object-contain"
-        style={{ pointerEvents: 'none' }}
+        className="w-full aspect-video object-contain cursor-pointer"
       />
 
       {/* Error Overlay */}
