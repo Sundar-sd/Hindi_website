@@ -209,15 +209,16 @@ export default function LiveClassPage() {
                               const driveIframeUrl = getGoogleDriveIframeUrl(videoUrl);
                               if (driveIframeUrl) {
                                 return (
-                                  <div className="aspect-video w-full overflow-hidden bg-black relative group isolation-isolate z-0 transform-gpu">
+                                  <div className="aspect-video w-full overflow-hidden bg-black relative group isolation-isolate z-0 transform-gpu rounded-t-2xl">
                                     <iframe 
                                       src={driveIframeUrl} 
-                                      className="absolute inset-0 w-full h-full border-0 z-0" 
+                                      className="absolute left-0 w-full border-0 z-0" 
+                                      style={{ top: '-56px', height: 'calc(100% + 56px)' }}
                                       allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                                     ></iframe>
-                                    {/* Cover the entire top header to hide Google Drive title and buttons */}
-                                    <div className="absolute top-0 left-0 right-0 h-12 sm:h-14 bg-black z-10 flex items-center justify-end px-4 pointer-events-none" title="Live Stream">
-                                      <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-lg backdrop-blur-sm pointer-events-auto">
+                                    {/* Floating LIVE badge */}
+                                    <div className="absolute top-4 right-4 z-10 pointer-events-none">
+                                      <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 rounded-lg backdrop-blur-md border border-white/10 pointer-events-auto shadow-xl">
                                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
                                         <span className="text-white text-xs font-black tracking-widest">LIVE</span>
                                       </div>
