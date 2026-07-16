@@ -32,16 +32,16 @@ function formatTime(iso: string): string {
   });
 }
 
-function getGoogleDriveIframeUrl(url: string): string | null {
+function getDirectDriveVideoUrl(url: string): string | null {
   if (!url) return null;
-  // Match standard viewing link
+  // Extract ID from standard viewing link
   let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
+  if (match) return `https://drive.google.com/uc?export=download&confirm=t&id=${match[1]}`;
   
-  // Match our optimized download link
+  // Extract ID from optimized download link
   match = url.match(/id=([a-zA-Z0-9_-]+)/);
   if (match && url.includes("drive.google.com")) {
-     return `https://drive.google.com/file/d/${match[1]}/preview`;
+     return `https://drive.google.com/uc?export=download&confirm=t&id=${match[1]}`;
   }
   
   return null;
@@ -206,29 +206,12 @@ export default function LiveClassPage() {
                         ) : videoUrl ? (
                           <>
                             {(() => {
-                              const driveIframeUrl = getGoogleDriveIframeUrl(videoUrl);
-                              if (driveIframeUrl) {
-                                return (
-                                  <div className="aspect-video w-full overflow-hidden bg-black relative group isolation-isolate z-0 transform-gpu rounded-t-2xl">
-                                    <iframe 
-                                      src={driveIframeUrl} 
-                                      className="absolute left-0 w-full border-0 z-0" 
-                                      style={{ top: '-56px', height: 'calc(100% + 56px)' }}
-                                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                                    ></iframe>
-                                    {/* Floating LIVE badge */}
-                                    <div className="absolute top-4 right-4 z-10 pointer-events-none">
-                                      <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 rounded-lg backdrop-blur-md border border-white/10 pointer-events-auto shadow-xl">
-                                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
-                                        <span className="text-white text-xs font-black tracking-widest">LIVE</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              }
+                              const directDriveUrl = getDirectDriveVideoUrl(videoUrl);
+                              const finalUrl = directDriveUrl || videoUrl;
+                              
                               return (
                                 <LockableVideoPlayer
-                                  src={videoUrl}
+                                  src={finalUrl}
                                   poster={cls.thumbnail_url}
                                   autoPlay={true}
                                   startTime={activeStartTime}
