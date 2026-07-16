@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserPlus, Users, Search, Mail, Phone, Key, Plus, X, Loader2, CheckCircle2 } from "lucide-react";
+import { UserPlus, Users, Search, Mail, Phone, Key, Plus, X, Loader2, CheckCircle2, Trash2 } from "lucide-react";
 
 const API_BASE = "https://concise-egomaniac-starved.ngrok-free.dev/military";
 
@@ -56,7 +56,7 @@ export default function UserManagementTab() {
       email: form.email,
       mobile: form.mobile,
       password: form.password,
-      device_id: crypto.randomUUID(), // Simulated device ID for admin creation
+      device_id: "", // Leave empty so backend binds on first user login instead of locking to admin
     };
 
     try {
@@ -88,6 +88,29 @@ export default function UserManagementTab() {
       setTimeout(() => setErrorMessage(""), 5000);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this user?")) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/users/${id}/`, {
+        method: "DELETE",
+        headers: { "ngrok-skip-browser-warning": "true" }
+      });
+      if (response.ok) {
+        setSuccessMessage("✅ User deleted successfully!");
+        setTimeout(() => setSuccessMessage(""), 5000);
+        fetchUsers();
+      } else {
+        setErrorMessage("Failed to delete user. Please try again.");
+        setTimeout(() => setErrorMessage(""), 5000);
+      }
+    } catch (error) {
+      console.error("Delete user error:", error);
+      setErrorMessage("Network error while deleting user.");
+      setTimeout(() => setErrorMessage(""), 5000);
     }
   };
 
@@ -167,6 +190,7 @@ export default function UserManagementTab() {
                   <th className="px-6 py-4">User Details</th>
                   <th className="px-6 py-4">Contact Info</th>
                   <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -202,6 +226,15 @@ export default function UserManagementTab() {
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Active
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                        title="Delete User"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </td>
                   </tr>
                 ))}

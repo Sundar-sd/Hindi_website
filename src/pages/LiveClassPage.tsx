@@ -215,9 +215,9 @@ export default function LiveClassPage() {
                                       className="w-full h-full border-0" 
                                       allow="autoplay; fullscreen"
                                     ></iframe>
-                                    {/* CSS Hack: Overlay to hide the Google Drive "Pop-out" / Share button in the top right */}
-                                    <div className="absolute top-0 right-0 w-24 h-14 bg-black z-10 cursor-default flex items-center justify-center rounded-bl-2xl border-b border-l border-white/5" title="Live Stream">
-                                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-lg">
+                                    {/* Cover the entire top header to hide Google Drive title and buttons */}
+                                    <div className="absolute top-0 left-0 right-0 h-12 sm:h-14 bg-black z-10 flex items-center justify-end px-4 pointer-events-none" title="Live Stream">
+                                      <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-lg backdrop-blur-sm pointer-events-auto">
                                         <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
                                         <span className="text-white text-xs font-black tracking-widest">LIVE</span>
                                       </div>
