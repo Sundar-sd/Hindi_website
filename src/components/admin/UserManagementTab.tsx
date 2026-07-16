@@ -95,7 +95,7 @@ export default function UserManagementTab() {
     if (!window.confirm("Are you sure you want to permanently delete this user?")) return;
     
     try {
-      const response = await fetch(`${API_BASE}/users/${id}/`, {
+      const response = await fetch(`${API_BASE}/users/delete/${id}/`, {
         method: "DELETE",
         headers: { "ngrok-skip-browser-warning": "true" }
       });
